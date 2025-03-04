@@ -1,6 +1,0 @@
-<testsuites name="results">
-  <testsuite name="all" package="all">
-    <property name="random_seed" value="1741118026" />
-    <testcase name="test_project" classname="test" file="/home/jpfau/Dokumente/Projekte/FPGA/neosd/test/test.py" lineno="8" time="0.0034766197204589844" sim_time_ns="100.001" ratio_time="28763.859162254837" />
-  </testsuite>
-</testsuites>
