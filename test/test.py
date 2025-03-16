@@ -31,5 +31,5 @@ async def test_project(dut):
     await ClockCycles(dut.clk, 3)
     dut.rstn.value = 1
 
-    await wbs.send_cycle([WBOp(0, 0xabcd1234), WBOp(1, 0x1bcd1234)])
+    await wbs.send_cycle([WBOp(0x0, 0b000010), WBOp(0x0, 0b000000), WBOp(0x0, 0b000001), WBOp(0x0)])
     await ClockCycles(dut.clk, 3)
