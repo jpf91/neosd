@@ -23,6 +23,14 @@ module tb ();
     wire wb_err_o;
     wire[31:0] wb_dat_o;
 
+    wire sd_clk_o;
+    wire sd_cmd_o;
+    wire sd_cmd_i;
+    wire sd_cmd_oe;
+    wire sd_dat0_o;
+    wire sd_dat0_i;
+    wire sd_dato_oe;
+
     neosd dut (
         .clk_i(clk),
         .rstn_i(rstn),
@@ -36,7 +44,15 @@ module tb ();
     
         .wb_ack_o(wb_ack_o),
         .wb_err_o(wb_err_o),
-        .wb_dat_o(wb_dat_o)
+        .wb_dat_o(wb_dat_o),
+
+        .sd_clk_o(sd_clk_o),
+        .sd_cmd_o(sd_cmd_o),
+        .sd_cmd_i(sd_cmd_i),
+        .sd_cmd_oe(sd_cmd_oe),
+        .sd_dat0_o(sd_dat0_o),
+        .sd_dat0_i(sd_dat0_i),
+        .sd_dato_oe(sd_dato_oe)
     );
 
 endmodule

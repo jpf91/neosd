@@ -11,7 +11,17 @@ module neosd (
 
     output reg wb_ack_o,
     output wb_err_o,
-    output reg[31:0] wb_dat_o
+    output reg[31:0] wb_dat_o,
+
+    // SD Card Signals
+    output reg sd_clk_o,
+    output reg sd_cmd_o,
+    input sd_cmd_i,
+    output reg sd_cmd_oe,
+    output reg sd_dat0_o,
+    input sd_dat0_i,
+    output reg sd_dato_oe
+
 );
 
     // Control and status registers
@@ -39,9 +49,9 @@ module neosd (
     logic[31:0] NEOSD_CMDARG_REG;
 
     // Expected response: No response, short (? bit, Rx/Ry) response, long (? bit, Rx/Ry) response
-    typedef enum {RESP_NONE, RESP_SHORT, RESP_LONG} RESP_MODE;
+    typedef enum logic[1:0] {RESP_NONE, RESP_SHORT, RESP_LONG} RESP_MODE;
     // Transfer on data lines: No data, busy signal flag, read block, write block
-    typedef enum {DATA_NONE, DATA_BUSY, DATA_R, DATA_W} DATA_MODE;
+    typedef enum logic[1:0] {DATA_NONE, DATA_BUSY, DATA_R, DATA_W} DATA_MODE;
 
     struct packed {
         logic[5:0] IDX;
@@ -81,6 +91,9 @@ module neosd (
             // NEOSD_RESP3_REG: Don't initialize
             // NEOSD_DATA_REG: Don't initialize
         end else begin
+            // Flag auto-resets after one cycle
+            NEOSD_CMD_REG.COMMIT <= 1'b0;
+
             if (wb_stb_i && wb_we_i && !wb_stall_o) begin
                 case (wb_adr_i)
                     32'h00000000:
@@ -172,4 +185,77 @@ module neosd (
     assign wb_stall_o = 1'b0;
     assign wb_err_o = 1'b0;
 
+
+
+    // SD Card logic: CMD FSM
+    typedef enum logic[4:0] {CMD_STATE_IDLE, CMD_STATE_WSTART, CMD_STATE_WIDX, CMD_STATE_WARG, CMD_STATE_WCRC, CMD_STATE_WEND} CMD_STATE;
+
+    typedef struct packed {
+        CMD_STATE state;
+        logic[3:0] counter;
+    } CMD_FSM_STATE;
+
+    CMD_FSM_STATE cmd_fsm_curr;
+
+    always @(posedge clk_i or negedge rstn_i) begin
+        CMD_FSM_STATE cmd_fsm_next;
+
+        if (rstn_i == 1'b0) begin
+            cmd_fsm_curr.state <= CMD_STATE_IDLE;
+            cmd_fsm_curr.counter <= 0;
+            sd_cmd_oe <= 1'b0;
+        end else begin
+            // NEOSD_CTRL_REG RSTN, EN, ABRT
+
+            // State transition logic
+            cmd_fsm_next = cmd_fsm_curr;
+            case (cmd_fsm_curr.state)
+                CMD_STATE_IDLE: begin
+                    if (NEOSD_CMD_REG.COMMIT == 1'b1) begin
+                        cmd_fsm_next.state = CMD_STATE_WSTART;
+                    end
+                end
+                CMD_STATE_WSTART: begin
+                    if (cmd_fsm_curr.counter == 1) begin
+                        cmd_fsm_next.state = CMD_STATE_WIDX;
+                        cmd_fsm_next.counter = 0;
+                    end else begin
+                        cmd_fsm_next.counter = cmd_fsm_curr.counter + 1;
+                    end
+                end
+                CMD_STATE_WIDX: begin
+                    if (cmd_fsm_curr.counter == 5) begin
+                        cmd_fsm_next.state = CMD_STATE_WARG;
+                        cmd_fsm_next.counter = 0;
+                    end else begin
+                        cmd_fsm_next.counter = cmd_fsm_curr.counter + 1;
+                    end
+                end
+            endcase
+            
+            // Data output logic
+            case (cmd_fsm_next.state)
+                CMD_STATE_IDLE: begin
+                end
+                // Write the CMD start bits 01
+                CMD_STATE_WSTART: begin
+                    sd_cmd_oe <= 1'b1;
+                    case (cmd_fsm_next.counter)
+                        0: sd_cmd_o <= 1'b0;
+                        1: sd_cmd_o <= 1'b1;
+                    endcase
+                end
+                // Write the CMD index
+                CMD_STATE_WIDX: begin
+                    sd_cmd_o <= (NEOSD_CMD_REG.IDX >> (5 - cmd_fsm_next.counter)) & 1'b1;
+                end
+                // Write the CMD arg
+                CMD_STATE_WARG: begin
+                    sd_cmd_oe <= 1'b0;
+                end
+            endcase
+
+            cmd_fsm_curr <= cmd_fsm_next;
+        end
+    end
 endmodule

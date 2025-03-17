@@ -33,3 +33,7 @@ async def test_project(dut):
 
     await wbs.send_cycle([WBOp(0x0, 0b000010), WBOp(0x0, 0b000000), WBOp(0x0, 0b000001), WBOp(0x0)])
     await ClockCycles(dut.clk, 3)
+
+    # CMDArg 0x10, IDX=0b110101 COMMIT
+    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b1101010000000000001)])
+    await ClockCycles(dut.clk, 20)
