@@ -188,7 +188,20 @@ module neosd (
 
 
     // SD Card logic: CMD FSM
-    typedef enum logic[4:0] {CMD_STATE_IDLE, CMD_STATE_WSTART, CMD_STATE_WIDX, CMD_STATE_WARG, CMD_STATE_WCRC, CMD_STATE_WEND} CMD_STATE;
+    logic cmd_reg_load;
+    logic[15:0] cmd_reg_din, cmd_reg_dout;
+
+    sreg cmd_reg (
+        .clk_i(clk_i),
+        .rstn_i(rstn_i),
+        .load_p_i(cmd_reg_load),
+        .data_p_i(cmd_reg_din),
+        .data_s_i(sd_cmd_i),
+        .data_p_o(cmd_reg_dout),
+        .data_s_o(sd_cmd_o)
+    );
+
+    typedef enum logic[4:0] {CMD_STATE_IDLE, CMD_STATE_W0, CMD_STATE_W1, CMD_STATE_W2, CMD_STATE_R} CMD_STATE;
 
     typedef struct packed {
         CMD_STATE state;
@@ -205,6 +218,7 @@ module neosd (
             cmd_fsm_curr.counter <= 0;
             sd_cmd_oe <= 1'b0;
         end else begin
+            cmd_reg_load <= 1'b0;
             // NEOSD_CTRL_REG RSTN, EN, ABRT
 
             // State transition logic
@@ -212,46 +226,41 @@ module neosd (
             case (cmd_fsm_curr.state)
                 CMD_STATE_IDLE: begin
                     if (NEOSD_CMD_REG.COMMIT == 1'b1) begin
-                        cmd_fsm_next.state = CMD_STATE_WSTART;
-                    end
-                end
-                CMD_STATE_WSTART: begin
-                    if (cmd_fsm_curr.counter == 1) begin
-                        cmd_fsm_next.state = CMD_STATE_WIDX;
+                        cmd_fsm_next.state = CMD_STATE_W0;
                         cmd_fsm_next.counter = 0;
-                    end else begin
-                        cmd_fsm_next.counter = cmd_fsm_curr.counter + 1;
+                        cmd_reg_load <= 1'b1;
+                        cmd_reg_din <= {2'b01, NEOSD_CMD_REG.IDX, NEOSD_CMDARG_REG[31:24]};
                     end
                 end
-                CMD_STATE_WIDX: begin
-                    if (cmd_fsm_curr.counter == 5) begin
-                        cmd_fsm_next.state = CMD_STATE_WARG;
-                        cmd_fsm_next.counter = 0;
-                    end else begin
-                        cmd_fsm_next.counter = cmd_fsm_curr.counter + 1;
-                    end
-                end
-            endcase
-            
-            // Data output logic
-            case (cmd_fsm_next.state)
-                CMD_STATE_IDLE: begin
-                end
-                // Write the CMD start bits 01
-                CMD_STATE_WSTART: begin
+                CMD_STATE_W0: begin
                     sd_cmd_oe <= 1'b1;
-                    case (cmd_fsm_next.counter)
-                        0: sd_cmd_o <= 1'b0;
-                        1: sd_cmd_o <= 1'b1;
-                    endcase
+                    if (cmd_fsm_curr.counter == 15) begin
+                        cmd_fsm_next.state = CMD_STATE_W1;
+                        cmd_fsm_next.counter = 0;
+                        cmd_reg_load <= 1'b1;
+                        cmd_reg_din <= NEOSD_CMDARG_REG[23:8];
+                    end else begin
+                        cmd_fsm_next.counter = cmd_fsm_curr.counter + 1;
+                    end
                 end
-                // Write the CMD index
-                CMD_STATE_WIDX: begin
-                    sd_cmd_o <= (NEOSD_CMD_REG.IDX >> (5 - cmd_fsm_next.counter)) & 1'b1;
+                CMD_STATE_W1: begin
+                    if (cmd_fsm_curr.counter == 15) begin
+                        cmd_fsm_next.state = CMD_STATE_W2;
+                        cmd_fsm_next.counter = 0;
+                        cmd_reg_load <= 1'b1;
+                        cmd_reg_din <= {NEOSD_CMDARG_REG[7:0], NEOSD_CMD_REG.CRC, 1'b1};
+                    end else begin
+                        cmd_fsm_next.counter = cmd_fsm_curr.counter + 1;
+                    end
                 end
-                // Write the CMD arg
-                CMD_STATE_WARG: begin
-                    sd_cmd_oe <= 1'b0;
+                CMD_STATE_W2: begin
+                    if (cmd_fsm_curr.counter == 15) begin
+                        cmd_fsm_next.state = CMD_STATE_R;
+                        cmd_fsm_next.counter = 0;
+                        sd_cmd_oe <= 1'b0;
+                    end else begin
+                        cmd_fsm_next.counter = cmd_fsm_curr.counter + 1;
+                    end
                 end
             endcase
 
