@@ -5,7 +5,7 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src/hdl
-PROJECT_SOURCES = neosd.sv
+PROJECT_SOURCES = neosd.sv sreg.sv
 
 # RTL simulation:
 SIM_BUILD = sim_build/rtl
