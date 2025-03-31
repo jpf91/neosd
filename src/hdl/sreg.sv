@@ -3,10 +3,10 @@ module sreg (
     input rstn_i,
     input load_p_i,
 
-    input[15:0] data_p_i,
+    input[7:0] data_p_i,
     input data_s_i,
 
-    output reg[15:0] data_p_o,
+    output reg[7:0] data_p_o,
     output data_s_o
 );
 
@@ -17,10 +17,10 @@ module sreg (
             if (load_p_i == 1'b1)
                 data_p_o <= data_p_i;
             else
-                data_p_o <= {data_p_o[14:0], data_s_i};
+                data_p_o <= {data_p_o[6:0], data_s_i};
         end
     end
 
-    assign data_s_o = data_p_o[15];
+    assign data_s_o = data_p_o[7];
 
 endmodule
