@@ -68,6 +68,7 @@ module neosd (
     logic[31:0] NEOSD_RESP1_REG;
     logic[31:0] NEOSD_RESP2_REG;
     logic[31:0] NEOSD_RESP3_REG;
+    logic[7:0] NEOSD_RESP4_REG;
 
     // SD Data Register (R/W)
     logic[31:0] NEOSD_DATA_REG;
@@ -89,6 +90,7 @@ module neosd (
             // NEOSD_RESP1_REG: Don't initialize
             // NEOSD_RESP2_REG: Don't initialize
             // NEOSD_RESP3_REG: Don't initialize
+            // NEOSD_RESP4_REG: Don't initialize
             // NEOSD_DATA_REG: Don't initialize
         end else begin
             // Flag auto-resets after one cycle
@@ -122,6 +124,9 @@ module neosd (
                         // NEOSD_RESP3_REG is read-only
                     end
                     32'h00000028: begin
+                        // NEOSD_RESP4_REG is read-only
+                    end
+                    32'h0000002C: begin
                         NEOSD_DATA_REG <= wb_dat_i[31:0];
                         // TODO: Can only be written in Block write mode.
                         // TODO: Trigger something on written
@@ -165,6 +170,8 @@ module neosd (
             32'h00000024:
                 wb_dat_o[31:0] <= NEOSD_RESP3_REG;
             32'h00000028:
+                wb_dat_o[31:0] <= {24'b0, NEOSD_RESP4_REG};
+            32'h0000002C:
                 wb_dat_o[31:0] <= NEOSD_DATA_REG;
 
             default: begin
@@ -189,7 +196,7 @@ module neosd (
 
     // SD Card logic: CMD FSM
     logic cmd_reg_load;
-    logic[15:0] cmd_reg_din, cmd_reg_dout;
+    logic[7:0] cmd_reg_din, cmd_reg_dout;
 
     sreg cmd_reg (
         .clk_i(clk_i),
@@ -201,11 +208,12 @@ module neosd (
         .data_s_o(sd_cmd_o)
     );
 
-    typedef enum logic[4:0] {CMD_STATE_IDLE, CMD_STATE_W0, CMD_STATE_W1, CMD_STATE_W2, CMD_STATE_R} CMD_STATE;
+    typedef enum logic[1:0] {CMD_STATE_IDLE, CMD_STATE_WRITE, CMD_STATE_WAIT_RESP, CMD_STATE_READ_RESP} CMD_STATE;
 
     typedef struct packed {
         CMD_STATE state;
-        logic[3:0] counter;
+        logic[2:0] bit_counter;
+        logic[4:0] byte_counter;
     } CMD_FSM_STATE;
 
     CMD_FSM_STATE cmd_fsm_curr;
@@ -215,10 +223,11 @@ module neosd (
 
         if (rstn_i == 1'b0) begin
             cmd_fsm_curr.state <= CMD_STATE_IDLE;
-            cmd_fsm_curr.counter <= 0;
             sd_cmd_oe <= 1'b0;
         end else begin
             cmd_reg_load <= 1'b0;
+            cmd_reg_din <= '0;
+            sd_cmd_oe <= 1'b0;
             // NEOSD_CTRL_REG RSTN, EN, ABRT
 
             // State transition logic
@@ -226,40 +235,102 @@ module neosd (
             case (cmd_fsm_curr.state)
                 CMD_STATE_IDLE: begin
                     if (NEOSD_CMD_REG.COMMIT == 1'b1) begin
-                        cmd_fsm_next.state = CMD_STATE_W0;
-                        cmd_fsm_next.counter = 0;
+                        cmd_fsm_next.state = CMD_STATE_WRITE;
+                        cmd_fsm_next.bit_counter = 0;
+                        cmd_fsm_next.byte_counter = 5;
                         cmd_reg_load <= 1'b1;
-                        cmd_reg_din <= {2'b01, NEOSD_CMD_REG.IDX, NEOSD_CMDARG_REG[31:24]};
+                        cmd_reg_din <= {2'b01, NEOSD_CMD_REG.IDX};
                     end
                 end
-                CMD_STATE_W0: begin
+                CMD_STATE_WRITE: begin
                     sd_cmd_oe <= 1'b1;
-                    if (cmd_fsm_curr.counter == 15) begin
-                        cmd_fsm_next.state = CMD_STATE_W1;
-                        cmd_fsm_next.counter = 0;
+                    if (cmd_fsm_curr.bit_counter == 7) begin
+                        cmd_fsm_next.bit_counter = 0;
+                        cmd_fsm_next.byte_counter = cmd_fsm_curr.byte_counter - 1;
                         cmd_reg_load <= 1'b1;
-                        cmd_reg_din <= NEOSD_CMDARG_REG[23:8];
+                        case (cmd_fsm_curr.byte_counter)
+                            0: begin
+                                cmd_reg_load <= 1'b0;
+                                case (NEOSD_CMD_REG.RMODE)
+                                    RESP_NONE: begin
+                                        cmd_fsm_next.state = CMD_STATE_IDLE;
+                                    end
+                                    RESP_SHORT: begin
+                                        cmd_fsm_next.byte_counter = 5;
+                                        cmd_fsm_next.bit_counter = 2;
+                                        cmd_fsm_next.state = CMD_STATE_WAIT_RESP;
+                                    end
+                                    RESP_LONG: begin
+                                        cmd_fsm_next.byte_counter = 16;
+                                        cmd_fsm_next.bit_counter = 2;
+                                        cmd_fsm_next.state = CMD_STATE_WAIT_RESP;
+                                    end
+                                endcase
+                            end
+                            1:
+                                cmd_reg_din <= {NEOSD_CMD_REG.CRC, 1'b1};
+                            2:
+                                cmd_reg_din <= NEOSD_CMDARG_REG[7:0];
+                            3:
+                                cmd_reg_din <= NEOSD_CMDARG_REG[15:8];
+                            4:
+                                cmd_reg_din <= NEOSD_CMDARG_REG[23:16];
+                            5:
+                                cmd_reg_din <= NEOSD_CMDARG_REG[31:24];
+                        endcase
                     end else begin
-                        cmd_fsm_next.counter = cmd_fsm_curr.counter + 1;
+                        cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
                     end
                 end
-                CMD_STATE_W1: begin
-                    if (cmd_fsm_curr.counter == 15) begin
-                        cmd_fsm_next.state = CMD_STATE_W2;
-                        cmd_fsm_next.counter = 0;
-                        cmd_reg_load <= 1'b1;
-                        cmd_reg_din <= {NEOSD_CMDARG_REG[7:0], NEOSD_CMD_REG.CRC, 1'b1};
-                    end else begin
-                        cmd_fsm_next.counter = cmd_fsm_curr.counter + 1;
+                CMD_STATE_WAIT_RESP: begin
+                    if (cmd_reg_dout[1:0] == 2'b00) begin
+                        cmd_fsm_next.state = CMD_STATE_READ_RESP;
                     end
                 end
-                CMD_STATE_W2: begin
-                    if (cmd_fsm_curr.counter == 15) begin
-                        cmd_fsm_next.state = CMD_STATE_R;
-                        cmd_fsm_next.counter = 0;
-                        sd_cmd_oe <= 1'b0;
+                CMD_STATE_READ_RESP: begin
+                    if (cmd_fsm_curr.bit_counter == 7) begin
+                        cmd_fsm_next.bit_counter = 0;
+                        cmd_fsm_next.byte_counter = cmd_fsm_curr.byte_counter - 1;
+                        case (cmd_fsm_curr.byte_counter)
+                            0: begin
+                                NEOSD_RESP0_REG[7:0] <= cmd_reg_dout;
+                                cmd_fsm_next.state = CMD_STATE_IDLE;
+                            end
+                            1:
+                                NEOSD_RESP0_REG[15:8] <= cmd_reg_dout;
+                            2:
+                                NEOSD_RESP0_REG[23:16] <= cmd_reg_dout;
+                            3:
+                                NEOSD_RESP0_REG[31:24] <= cmd_reg_dout;
+                            4:
+                                NEOSD_RESP1_REG[7:0] <= cmd_reg_dout;
+                            5:
+                                NEOSD_RESP1_REG[15:8] <= cmd_reg_dout;
+                            6:
+                                NEOSD_RESP1_REG[23:16] <= cmd_reg_dout;
+                            7:
+                                NEOSD_RESP1_REG[31:24] <= cmd_reg_dout;
+                            8:
+                                NEOSD_RESP2_REG[7:0] <= cmd_reg_dout;
+                            9:
+                                NEOSD_RESP2_REG[15:8] <= cmd_reg_dout;
+                            10:
+                                NEOSD_RESP2_REG[23:16] <= cmd_reg_dout;
+                            11:
+                                NEOSD_RESP2_REG[31:24] <= cmd_reg_dout;
+                            12:
+                                NEOSD_RESP3_REG[7:0] <= cmd_reg_dout;
+                            13:
+                                NEOSD_RESP3_REG[15:8] <= cmd_reg_dout;
+                            14:
+                                NEOSD_RESP3_REG[23:16] <= cmd_reg_dout;
+                            15:
+                                NEOSD_RESP3_REG[31:24] <= cmd_reg_dout;
+                            16:
+                                NEOSD_RESP4_REG[7:0] <= cmd_reg_dout;
+                        endcase
                     end else begin
-                        cmd_fsm_next.counter = cmd_fsm_curr.counter + 1;
+                        cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
                     end
                 end
             endcase
