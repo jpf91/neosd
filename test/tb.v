@@ -11,6 +11,7 @@ module tb ();
 
     reg clk;
     reg rstn;
+    reg[7:0] clk_gen;
 
     reg[31:0] wb_adr_i;
     reg[31:0] wb_dat_i;
@@ -34,6 +35,7 @@ module tb ();
     neosd dut (
         .clk_i(clk),
         .rstn_i(rstn),
+        .clkgen_i(clk_gen),
     
         .wb_adr_i(wb_adr_i),
         .wb_dat_i(wb_dat_i),
@@ -54,5 +56,25 @@ module tb ();
         .sd_dat0_i(sd_dat0_i),
         .sd_dato_oe(sd_dato_oe)
     );
+
+    reg[11:0] cnt, cnt2;
+    always @(posedge clk or negedge rstn) begin
+        if (rstn == 0) begin
+            cnt <= 0;
+            cnt2 <= 0;
+        end else begin
+            cnt <= cnt + 1;
+            cnt2 <= cnt;
+        end
+    end
+
+    assign clk_gen[0] = cnt[0]  & !cnt2[0];  // clk_i / 2
+    assign clk_gen[1] = cnt[1]  & !cnt2[1];  // clk_i / 4
+    assign clk_gen[2] = cnt[2]  & !cnt2[2];  // clk_i / 8
+    assign clk_gen[3] = cnt[5]  & !cnt2[5];  // clk_i / 64
+    assign clk_gen[4] = cnt[6]  & !cnt2[6];  // clk_i / 128
+    assign clk_gen[5] = cnt[9]  & !cnt2[9];  // clk_i / 1024
+    assign clk_gen[6] = cnt[10] & !cnt2[10]; // clk_i / 2048
+    assign clk_gen[7] = cnt[11] & !cnt2[11]; // clk_i / 4096
 
 endmodule

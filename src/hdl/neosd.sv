@@ -1,6 +1,7 @@
 module neosd (
     input clk_i,
     input rstn_i,
+    input[7:0] clkgen_i,
 
     input[31:0] wb_adr_i,
     input[31:0] wb_dat_i,
