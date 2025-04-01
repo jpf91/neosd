@@ -79,8 +79,7 @@ module neosd (
     wire wb_stall_o;
 
 
-    logic sd_clk_div;
-    assign sd_clk_div = clkgen_i[NEOSD_CTRL_REG.CDIV];
+    logic sd_clk_div2;
 
     // Wishbone Write Logic
     always @(posedge clk_i or negedge rstn_i) begin
@@ -99,7 +98,7 @@ module neosd (
             // NEOSD_DATA_REG: Don't initialize
         end else begin
             // Flag auto-resets after CMD FSM read it
-            if (sd_clk_div == 1'b1)
+            if (sd_clk_div2 == 1'b1)
                 NEOSD_CMD_REG.COMMIT <= 1'b0;
 
             if (wb_stb_i && wb_we_i && !wb_stall_o) begin
@@ -199,13 +198,35 @@ module neosd (
     assign wb_err_o = 1'b0;
 
 
+    // SD Card: SDCLK
+    logic sd_clk_div;
+    logic sd_clk_div_last;
+    logic sd_clk_en;
+    assign sd_clk_div = clkgen_i[NEOSD_CTRL_REG.CDIV];
+    assign sd_clk_div2 = sd_clk_div & sd_clk_div_last; 
+
+    always @(posedge clk_i or negedge rstn_i) begin
+        if (rstn_i == 1'b0) begin
+            sd_clk_o <= 1'b0;
+            sd_clk_div_last <= 1'b0;
+        end else begin
+            if (sd_clk_div == 1'b1) begin
+                sd_clk_div_last <= !sd_clk_div_last;
+                if (sd_clk_en == 1'b1)
+                    sd_clk_o <= !sd_clk_o;
+                else
+                    sd_clk_o <= 1'b0;
+            end
+        end
+    end
+
     // SD Card logic: CMD FSM
     logic cmd_reg_load;
     logic[7:0] cmd_reg_din, cmd_reg_dout;
 
     sreg cmd_reg (
         .clk_i(clk_i),
-        .en_i(sd_clk_div),
+        .en_i(sd_clk_div2),
         .rstn_i(rstn_i),
         .load_p_i(cmd_reg_load),
         .data_p_i(cmd_reg_din),
@@ -230,8 +251,9 @@ module neosd (
         if (rstn_i == 1'b0) begin
             cmd_fsm_curr.state <= CMD_STATE_IDLE;
             sd_cmd_oe <= 1'b0;
+            sd_clk_en <= 1'b0;
         end else begin
-            if (sd_clk_div == 1'b1) begin
+            if (sd_clk_div2 == 1'b1) begin
                 cmd_reg_load <= 1'b0;
                 cmd_reg_din <= '0;
                 sd_cmd_oe <= 1'b0;
@@ -251,6 +273,7 @@ module neosd (
                     end
                     CMD_STATE_WRITE: begin
                         sd_cmd_oe <= 1'b1;
+                        sd_clk_en <= 1'b1;
                         if (cmd_fsm_curr.bit_counter == 7) begin
                             cmd_fsm_next.bit_counter = 0;
                             cmd_fsm_next.byte_counter = cmd_fsm_curr.byte_counter - 1;
@@ -261,6 +284,7 @@ module neosd (
                                     case (NEOSD_CMD_REG.RMODE)
                                         RESP_NONE: begin
                                             cmd_fsm_next.state = CMD_STATE_IDLE;
+                                            sd_clk_en <= 1'b0;
                                         end
                                         RESP_SHORT: begin
                                             cmd_fsm_next.byte_counter = 5;
@@ -302,6 +326,7 @@ module neosd (
                                 0: begin
                                     NEOSD_RESP0_REG[7:0] <= cmd_reg_dout;
                                     cmd_fsm_next.state = CMD_STATE_IDLE;
+                                    sd_clk_en <= 1'b0;
                                 end
                                 1:
                                     NEOSD_RESP0_REG[15:8] <= cmd_reg_dout;

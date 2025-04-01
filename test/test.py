@@ -31,8 +31,8 @@ async def test_project(dut):
     await ClockCycles(dut.clk, 3)
     dut.rstn.value = 1
 
-    # CDIV = 8
-    await wbs.send_cycle([WBOp(0x0, 0b000010), WBOp(0x0, 0b000000), WBOp(0x0, 0b010001), WBOp(0x0)])
+    # CDIV = 4
+    await wbs.send_cycle([WBOp(0x0, 0b000010), WBOp(0x0, 0b000000), WBOp(0x0, 0b001001), WBOp(0x0)])
     await ClockCycles(dut.clk, 3)
 
     # CMDArg 0x10, IDX=0b110101 COMMIT, SHORT Response
