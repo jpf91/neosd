@@ -39,7 +39,7 @@ module neosd (
 
     // Interrupt registers
     typedef struct packed {
-        logic dummy;
+        logic IRQ_CMD_DONE;
     } IRQ_SET;
 
     IRQ_SET NEOSD_IRQ_FLAG_REG;
@@ -80,6 +80,7 @@ module neosd (
 
 
     logic sd_clk_div2;
+    logic sd_status_cmd_done;
 
     // Wishbone Write Logic
     always @(posedge clk_i or negedge rstn_i) begin
@@ -98,8 +99,11 @@ module neosd (
             // NEOSD_DATA_REG: Don't initialize
         end else begin
             // Flag auto-resets after CMD FSM read it
-            if (sd_clk_div2 == 1'b1)
+            if (sd_clk_div2 == 1'b1) begin
                 NEOSD_CMD_REG.COMMIT <= 1'b0;
+                if (sd_status_cmd_done == 1'b1)
+                    NEOSD_IRQ_FLAG_REG.IRQ_CMD_DONE <= 1'b1;
+            end
 
             if (wb_stb_i && wb_we_i && !wb_stall_o) begin
                 case (wb_adr_i)
@@ -252,6 +256,7 @@ module neosd (
             cmd_fsm_curr.state <= CMD_STATE_IDLE;
             sd_cmd_oe <= 1'b0;
             sd_clk_en <= 1'b0;
+            sd_status_cmd_done <= 1'b0;
         end else begin
             if (sd_clk_div2 == 1'b1) begin
                 cmd_reg_load <= 1'b0;
@@ -263,6 +268,7 @@ module neosd (
                 cmd_fsm_next = cmd_fsm_curr;
                 case (cmd_fsm_curr.state)
                     CMD_STATE_IDLE: begin
+                        sd_status_cmd_done <= 1'b0;
                         if (NEOSD_CMD_REG.COMMIT == 1'b1) begin
                             cmd_fsm_next.state = CMD_STATE_WRITE;
                             cmd_fsm_next.bit_counter = 0;
@@ -285,6 +291,7 @@ module neosd (
                                         RESP_NONE: begin
                                             cmd_fsm_next.state = CMD_STATE_IDLE;
                                             sd_clk_en <= 1'b0;
+                                            sd_status_cmd_done <= 1'b1;
                                         end
                                         RESP_SHORT: begin
                                             cmd_fsm_next.byte_counter = 5;
@@ -327,6 +334,12 @@ module neosd (
                                     NEOSD_RESP0_REG[7:0] <= cmd_reg_dout;
                                     cmd_fsm_next.state = CMD_STATE_IDLE;
                                     sd_clk_en <= 1'b0;
+                                    /* In theory, we could do this one sd_clk_div2 cycle earlier,
+                                     * as the handoff to the other state machine / the registers takes one cycle.
+                                     * However, have to think about this later, when I add support to stall the clock.
+                                     * We don't want this to be reported multiple times...
+                                     */
+                                    sd_status_cmd_done <= 1'b1;
                                 end
                                 1:
                                     NEOSD_RESP0_REG[15:8] <= cmd_reg_dout;
