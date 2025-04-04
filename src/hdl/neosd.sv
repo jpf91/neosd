@@ -21,8 +21,7 @@ module neosd (
     output reg sd_cmd_oe,
     output reg sd_dat0_o,
     input sd_dat0_i,
-    output reg sd_dato_oe
-
+    output reg sd_dat0_oe
 );
 
     // Control and status registers
