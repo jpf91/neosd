@@ -30,7 +30,7 @@ module tb ();
     wire sd_cmd_oe;
     wire sd_dat0_o;
     wire sd_dat0_i;
-    wire sd_dato_oe;
+    wire sd_dat0_oe;
 
     neosd dut (
         .clk_i(clk),
@@ -54,7 +54,7 @@ module tb ();
         .sd_cmd_oe(sd_cmd_oe),
         .sd_dat0_o(sd_dat0_o),
         .sd_dat0_i(sd_dat0_i),
-        .sd_dato_oe(sd_dato_oe)
+        .sd_dat0_oe(sd_dat0_oe)
     );
 
     reg[11:0] cnt, cnt2;

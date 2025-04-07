@@ -19,9 +19,9 @@ module neosd (
     output reg sd_cmd_o,
     input sd_cmd_i,
     output reg sd_cmd_oe,
-    output reg sd_dat0_o,
+    output sd_dat0_o,
     input sd_dat0_i,
-    output reg sd_dat0_oe
+    output sd_dat0_oe
 );
 
     // Control and status registers
@@ -89,7 +89,7 @@ module neosd (
             NEOSD_IRQ_FLAG_REG <= '0;
             NEOSD_IRQ_MASK_REG <= '0;
             // NEOSD_CMDARG_REG: Don't initialize
-            NEOSD_CMD_REG[0] <= '0; // Initialize only commit bit
+            NEOSD_CMD_REG <= '0; // Initialize only commit bit
             // NEOSD_RESP0_REG: Don't initialize
             // NEOSD_RESP1_REG: Don't initialize
             // NEOSD_RESP2_REG: Don't initialize
@@ -105,36 +105,36 @@ module neosd (
             end
 
             if (wb_stb_i && wb_we_i && !wb_stall_o) begin
-                case (wb_adr_i)
-                    32'h00000000:
+                case (wb_adr_i[7:0])
+                    8'h00:
                         NEOSD_CTRL_REG <= wb_dat_i[$bits(NEOSD_CTRL_REG):0];
-                    32'h00000004: begin
+                    8'h04: begin
                         // NEOSD_STAT_REG is read-only
                     end
-                    32'h00000008: // TODO: Write 1 to clear? What does neorv do?
+                    8'h08: // TODO: Write 1 to clear? What does neorv do?
                         NEOSD_IRQ_FLAG_REG <= wb_dat_i[$bits(NEOSD_IRQ_FLAG_REG):0];
-                    32'h0000000C:
+                    8'h0C:
                         NEOSD_IRQ_MASK_REG <= wb_dat_i[$bits(NEOSD_IRQ_MASK_REG):0];
-                    32'h00000010:
+                    8'h10:
                         NEOSD_CMDARG_REG <= wb_dat_i[31:0];
-                    32'h00000014:
+                    8'h14:
                         NEOSD_CMD_REG <= wb_dat_i[$bits(NEOSD_CMD_REG):0];
-                    32'h00000018: begin
+                    8'h18: begin
                         // NEOSD_RESP0_REG is read-only
                     end
-                    32'h0000001C: begin
+                    8'h1C: begin
                         // NEOSD_RESP1_REG is read-only
                     end
-                    32'h00000020: begin
+                    8'h20: begin
                         // NEOSD_RESP2_REG is read-only
                     end
-                    32'h00000024: begin
+                    8'h24: begin
                         // NEOSD_RESP3_REG is read-only
                     end
-                    32'h00000028: begin
+                    8'h28: begin
                         // NEOSD_RESP4_REG is read-only
                     end
-                    32'h0000002C: begin
+                    8'h2C: begin
                         NEOSD_DATA_REG <= wb_dat_i[31:0];
                         // TODO: Can only be written in Block write mode.
                         // TODO: Trigger something on written
@@ -156,36 +156,39 @@ module neosd (
         endcase
 
         wb_dat_o <= '0;
-        case (wb_adr_i)
-            32'h00000000:
-                wb_dat_o[$bits(NEOSD_CTRL_REG):0] <= NEOSD_CTRL_REG;
-            32'h00000004:
-                wb_dat_o[$bits(NEOSD_STAT_REG):0] <= NEOSD_STAT_REG;
-            32'h00000008:
-                wb_dat_o[$bits(NEOSD_IRQ_FLAG_REG):0] <= NEOSD_IRQ_FLAG_REG;
-            32'h0000000C:
-                wb_dat_o[$bits(NEOSD_IRQ_MASK_REG):0] <= NEOSD_IRQ_MASK_REG;
-            32'h00000010:
-                wb_dat_o[31:0] <= NEOSD_CMDARG_REG;
-            32'h00000014:
-                wb_dat_o[$bits(NEOSD_CMD_REG):0] <= NEOSD_CMD_REG;
-            32'h00000018:
-                wb_dat_o[31:0] <= NEOSD_RESP0_REG;
-            32'h0000001C:
-                wb_dat_o[31:0] <= NEOSD_RESP1_REG;
-            32'h00000020:
-                wb_dat_o[31:0] <= NEOSD_RESP2_REG;
-            32'h00000024:
-                wb_dat_o[31:0] <= NEOSD_RESP3_REG;
-            32'h00000028:
-                wb_dat_o[31:0] <= {24'b0, NEOSD_RESP4_REG};
-            32'h0000002C:
-                wb_dat_o[31:0] <= NEOSD_DATA_REG;
+        // Not needed for wishbone, but for neorv bus switch...
+        if (wb_stb_i && !wb_we_i) begin
+            case (wb_adr_i[7:0])
+                8'h00:
+                    wb_dat_o[$bits(NEOSD_CTRL_REG):0] <= NEOSD_CTRL_REG;
+                8'h04:
+                    wb_dat_o[$bits(NEOSD_STAT_REG):0] <= NEOSD_STAT_REG;
+                8'h08:
+                    wb_dat_o[$bits(NEOSD_IRQ_FLAG_REG):0] <= NEOSD_IRQ_FLAG_REG;
+                8'h0C:
+                    wb_dat_o[$bits(NEOSD_IRQ_MASK_REG):0] <= NEOSD_IRQ_MASK_REG;
+                8'h10:
+                    wb_dat_o[31:0] <= NEOSD_CMDARG_REG;
+                8'h14:
+                    wb_dat_o[$bits(NEOSD_CMD_REG):0] <= NEOSD_CMD_REG;
+                8'h18:
+                    wb_dat_o[31:0] <= NEOSD_RESP0_REG;
+                8'h1C:
+                    wb_dat_o[31:0] <= NEOSD_RESP1_REG;
+                8'h20:
+                    wb_dat_o[31:0] <= NEOSD_RESP2_REG;
+                8'h24:
+                    wb_dat_o[31:0] <= NEOSD_RESP3_REG;
+                8'h28:
+                    wb_dat_o[31:0] <= {24'b0, NEOSD_RESP4_REG};
+                8'h2C:
+                    wb_dat_o[31:0] <= NEOSD_DATA_REG;
 
-            default: begin
-                // Read unknown addresses as 0
-            end
-        endcase
+                default: begin
+                    // Read unknown addresses as 0
+                end
+            endcase
+        end
     end
 
     // Handle the handshake
@@ -207,6 +210,9 @@ module neosd (
     logic sd_clk_en;
     assign sd_clk_div = clkgen_i[NEOSD_CTRL_REG.CDIV];
     assign sd_clk_div2 = sd_clk_div & sd_clk_div_last; 
+
+    assign sd_dat0_o = 1'b0;
+    assign sd_dat0_oe = 1'b0;
 
     always @(posedge clk_i or negedge rstn_i) begin
         if (rstn_i == 1'b0) begin
@@ -247,12 +253,12 @@ module neosd (
     } CMD_FSM_STATE;
 
     CMD_FSM_STATE cmd_fsm_curr;
+    CMD_FSM_STATE cmd_fsm_next;
 
     always @(posedge clk_i or negedge rstn_i) begin
-        CMD_FSM_STATE cmd_fsm_next;
 
         if (rstn_i == 1'b0) begin
-            cmd_fsm_curr.state <= CMD_STATE_IDLE;
+            cmd_fsm_curr <= '0;
             sd_cmd_oe <= 1'b0;
             sd_clk_en <= 1'b0;
             sd_status_cmd_done <= 1'b0;
