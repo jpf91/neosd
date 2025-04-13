@@ -295,6 +295,8 @@ module neosd (
                                     cmd_reg_load <= 1'b0;
                                     case (NEOSD_CMD_REG.RMODE)
                                         RESP_NONE: begin
+                                            // FIXME: SD Spec says we need to generate 8 more CLKs if there's no response
+                                            // Should split the clock enable / disable logic, as it also depends on data FSM
                                             cmd_fsm_next.state = CMD_STATE_IDLE;
                                             sd_status_cmd_done <= 1'b1;
                                         end
