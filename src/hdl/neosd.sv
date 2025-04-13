@@ -267,6 +267,7 @@ module neosd (
                 cmd_reg_load <= 1'b0;
                 cmd_reg_din <= '0;
                 sd_cmd_oe <= 1'b0;
+                sd_clk_en <= 1'b0;
                 // NEOSD_CTRL_REG RSTN, EN, ABRT
 
                 // State transition logic
@@ -295,7 +296,6 @@ module neosd (
                                     case (NEOSD_CMD_REG.RMODE)
                                         RESP_NONE: begin
                                             cmd_fsm_next.state = CMD_STATE_IDLE;
-                                            sd_clk_en <= 1'b0;
                                             sd_status_cmd_done <= 1'b1;
                                         end
                                         RESP_SHORT: begin
@@ -326,11 +326,13 @@ module neosd (
                         end
                     end
                     CMD_STATE_WAIT_RESP: begin
+                        sd_clk_en <= 1'b1;
                         if (cmd_reg_dout[1:0] == 2'b00) begin
                             cmd_fsm_next.state = CMD_STATE_READ_RESP;
                         end
                     end
                     CMD_STATE_READ_RESP: begin
+                        sd_clk_en <= 1'b1;
                         if (cmd_fsm_curr.bit_counter == 7) begin
                             cmd_fsm_next.bit_counter = 0;
                             cmd_fsm_next.byte_counter = cmd_fsm_curr.byte_counter - 1;
