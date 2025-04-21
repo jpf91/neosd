@@ -36,23 +36,23 @@ async def test_project(dut):
     await ClockCycles(dut.clk, 3)
 
     # CMDArg 0x10, IDX=0b110101 COMMIT, SHORT Response
-    #await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b1101010000000010001)])
-
-    #await ClockCycles(dut.clk, 64)
-    #dut.sd_cmd_i.value = 0
-    #await ClockCycles(dut.clk, 48)
-    #dut.sd_cmd_i.value = 1
-
-    # CMDArg 0x10, IDX=0b110101 COMMIT, LONG Response
-    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b1101010000000100001)])
+    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b1101010000000010001)])
 
     await ClockCycles(dut.clk, 64*8)
     dut.sd_cmd_i.value = 0
-    await ClockCycles(dut.clk, 136*8)
+    await ClockCycles(dut.clk, 48*8)
     dut.sd_cmd_i.value = 1
 
+    # CMDArg 0x10, IDX=0b110101 COMMIT, LONG Response
+    # await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b1101010000000100001)])
+
+    # await ClockCycles(dut.clk, 64*8)
+    # dut.sd_cmd_i.value = 0
+    # await ClockCycles(dut.clk, 136*8)
+    # dut.sd_cmd_i.value = 1
+
     # CMDArg 0x10, IDX=0b110101 COMMIT, NO Response
-    #await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b1101010000000000001)])
+    # await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b1101010000000000001)])
     # await ClockCycles(dut.clk, 64*8)
 
 

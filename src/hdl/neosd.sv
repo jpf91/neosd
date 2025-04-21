@@ -244,7 +244,7 @@ module neosd (
         .data_s_o(sd_cmd_o)
     );
 
-    typedef enum logic[1:0] {CMD_STATE_IDLE, CMD_STATE_WRITE, CMD_STATE_WAIT_RESP, CMD_STATE_READ_RESP} CMD_STATE;
+    typedef enum logic[2:0] {CMD_STATE_IDLE, CMD_STATE_WRITE, CMD_STATE_WAIT_RESP, CMD_STATE_READ_RESP, CMD_STATE_TAIL} CMD_STATE;
 
     typedef struct packed {
         CMD_STATE state;
@@ -295,10 +295,8 @@ module neosd (
                                     cmd_reg_load <= 1'b0;
                                     case (NEOSD_CMD_REG.RMODE)
                                         RESP_NONE: begin
-                                            // FIXME: SD Spec says we need to generate 8 more CLKs if there's no response
-                                            // Should split the clock enable / disable logic, as it also depends on data FSM
-                                            cmd_fsm_next.state = CMD_STATE_IDLE;
-                                            sd_status_cmd_done <= 1'b1;
+                                            cmd_fsm_next.state = CMD_STATE_TAIL;
+                                            cmd_fsm_next.bit_counter = 0;
                                         end
                                         RESP_SHORT: begin
                                             cmd_fsm_next.byte_counter = 5;
@@ -341,14 +339,8 @@ module neosd (
                             case (cmd_fsm_curr.byte_counter)
                                 0: begin
                                     NEOSD_RESP0_REG[7:0] <= cmd_reg_dout;
-                                    cmd_fsm_next.state = CMD_STATE_IDLE;
-                                    sd_clk_en <= 1'b0;
-                                    /* In theory, we could do this one sd_clk_div2 cycle earlier,
-                                     * as the handoff to the other state machine / the registers takes one cycle.
-                                     * However, have to think about this later, when I add support to stall the clock.
-                                     * We don't want this to be reported multiple times...
-                                     */
-                                    sd_status_cmd_done <= 1'b1;
+                                    cmd_fsm_next.state = CMD_STATE_TAIL;
+                                    cmd_fsm_next.bit_counter = 0;
                                 end
                                 1:
                                     NEOSD_RESP0_REG[15:8] <= cmd_reg_dout;
@@ -383,6 +375,17 @@ module neosd (
                                 16:
                                     NEOSD_RESP4_REG[7:0] <= cmd_reg_dout;
                             endcase
+                        end else begin
+                            cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
+                        end
+                    end
+                    // Should split the clock enable / disable logic, as it also depends on data FSM
+                    CMD_STATE_TAIL: begin
+                        sd_clk_en <= 1'b1;
+                        if (cmd_fsm_curr.bit_counter == 7) begin
+                            cmd_fsm_next.state = CMD_STATE_IDLE;
+                            sd_status_cmd_done <= 1'b1;
+                            // FIXME: Is this one cycle too many? Clean up this mess...
                         end else begin
                             cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
                         end
