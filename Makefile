@@ -1,5 +1,6 @@
 export TOP_MODULE = neosd
 APP_SVERILOG = neosd_cmd_reg.sv \
+	neosd_cmd_fsm.sv \
 	neosd_top.sv
 
 export FLOW_HOME=/home/jpfau/Dokumente/orfs/flow
