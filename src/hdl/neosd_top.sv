@@ -15,10 +15,10 @@ module neosd (
     output reg[31:0] wb_dat_o,
 
     // SD Card Signals
-    output reg sd_clk_o,
-    output reg sd_cmd_o,
+    output sd_clk_o,
+    output sd_cmd_o,
     input sd_cmd_i,
-    output reg sd_cmd_oe,
+    output sd_cmd_oe,
     output sd_dat0_o,
     input sd_dat0_i,
     output sd_dat0_oe
@@ -57,9 +57,9 @@ module neosd (
     } NEOSD_CMD_REG_BASE;
 
     // Wishbone code based on https://zipcpu.com/zipcpu/2017/05/29/simple-wishbone.html
-    wire wb_stall_o;
+    logic wb_stall_o;
 
-    logic clkstrb_i;
+    logic clkstrb;
     logic status_idle_cmd, status_resp_cmd;
     logic status_resp_cmd_last, status_idle_cmd_last;
 
@@ -76,7 +76,7 @@ module neosd (
             // NEOSD_DATA_REG: Don't initialize
         end else begin
             // Auto-reset after CMD FSM read those
-            if (clkstrb_i == 1'b1) begin
+            if (clkstrb == 1'b1) begin
                 NEOSD_CMD_REG_BASE.COMMIT <= 1'b0;
             end
 
@@ -173,11 +173,12 @@ module neosd (
 
 
 
-
+    // SD Implementation: DATA
     assign sd_dat0_o = 1'b0;
     assign sd_dat0_oe = 1'b0;
 
-    logic sd_clk_req_cmd, sd_clk_en, ctrl_rmode;
+    // SD Implementation: CMD
+    logic sd_clk_req_cmd, sd_clk_stall_cmd, sd_clk_en;
 
     logic[5:0] cmd_idx;
     logic cmd_idx_load;
@@ -189,7 +190,7 @@ module neosd (
     neosd_cmd_fsm cmd_fsm (
         .clk_i(clk_i),
         .rstn_i(rstn_i),
-        .clkstrb_i(clkstrb_i),
+        .clkstrb_i(clkstrb),
 
         .cmd_idx_i(cmd_idx),
         .cmd_idx_load_i(cmd_idx_load),
@@ -206,6 +207,7 @@ module neosd (
         .ctrl_rmode_i(NEOSD_CMD_REG_BASE.RMODE),
 
         .sd_clk_req_o(sd_clk_req_cmd),
+        .sd_clk_stall_o(sd_clk_stall_cmd),
         .sd_clk_en_i(sd_clk_en),
         .sd_cmd_oe(sd_cmd_oe),
         .sd_cmd_o(sd_cmd_o),
@@ -238,29 +240,16 @@ module neosd (
         end
     end
 
-    // FIXME: Move to own module
-    // SD Card: SDCLK generator
-    assign sd_clk_en = sd_clk_req_cmd;
-
-    logic sd_clk_div;
-    logic sd_clk_div_last;
-    // Divided clock used to generate sd_clk_o
-    assign sd_clk_div = clkgen_i[NEOSD_CTRL_REG.CDIV];
-    // Divided clock used to sample / output data signals
-    assign clkstrb_i = sd_clk_div & sd_clk_div_last; 
-
-    always @(posedge clk_i or negedge rstn_i) begin
-        if (rstn_i == 1'b0) begin
-            sd_clk_o <= 1'b0;
-            sd_clk_div_last <= 1'b0;
-        end else begin
-            if (sd_clk_div == 1'b1) begin
-                sd_clk_div_last <= !sd_clk_div_last;
-                if (sd_clk_en == 1'b1)
-                    sd_clk_o <= !sd_clk_o;
-                else
-                    sd_clk_o <= 1'b0;
-            end
-        end
-    end
+    // SD Implementation: CLK
+    neosd_clk sd_clk (
+        .clk_i(clk_i),
+        .rstn_i(rstn_i),
+        .clkgen_i(clkgen_i),
+        .sd_clksel_i(NEOSD_CTRL_REG.CDIV),
+        .clkstrb_o(clkstrb),
+        .sd_clk_req_i({sd_clk_req_cmd, 1'b0}),
+        .sd_clk_stall_i({sd_clk_stall_cmd, 1'b0}),
+        .sd_clk_en_o(sd_clk_en),
+        .sd_clk_o(sd_clk_o)
+    );
 endmodule

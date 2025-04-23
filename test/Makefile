@@ -7,6 +7,7 @@ TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src/hdl
 PROJECT_SOURCES = neosd_cmd_reg.sv \
 	neosd_cmd_fsm.sv \
+	neosd_clk.sv \
 	neosd_top.sv
 
 # RTL simulation:

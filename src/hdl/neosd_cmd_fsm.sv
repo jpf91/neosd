@@ -22,24 +22,23 @@ module neosd_cmd_fsm (
 
     // If we want to have an SD card clock active
     output sd_clk_req_o,
-    // If the clock actually us active and not stalled
+    // If we need to stall the clock, because we're waiting for something
+    output sd_clk_stall_o,
+    // If the clock actually is active and not stalled
     input sd_clk_en_i,
     // SD CMD wire
     output sd_cmd_oe,
     output sd_cmd_o,
     input sd_cmd_i
 );
-    // Expected response: No response, short (? bit, Rx/Ry) response, long (? bit, Rx/Ry) response
-    typedef enum logic[1:0] {RESP_NONE, RESP_SHORT, RESP_LONG} RESP_MODE;
-
-    logic[47:0] cmd_reg_din, cmd_reg_dout;
+    // Hardwire to wishbone bus but load only if proper address selected
+    logic[47:0] cmd_reg_din;
     logic[5:0] cmd_reg_load;
-    logic cmd_reg_shift;
-
-    // Hardwire to wishbone bus
-    // Load only if proper address selected
     assign cmd_reg_din = {2'b01, cmd_idx_i, cmd_arg_i, cmd_crc_i, 1'b1};
     assign cmd_reg_load = {cmd_idx_load_i, cmd_arg_load_i, cmd_crc_load_i};
+
+    logic[47:0] cmd_reg_dout;
+    logic cmd_reg_shift;
 
     neosd_cmd_reg sreg (
         .clk_i(clk_i),
@@ -70,7 +69,11 @@ module neosd_cmd_fsm (
     assign resp_data_o = cmd_reg_dout;
     assign cmd_reg_shift = sd_clk_en_i && cmd_fsm_curr.clk_req;
     assign sd_clk_req_o = cmd_fsm_curr.clk_req;
+    assign sd_clk_stall_o = 1'b0; // FIXME
     assign sd_cmd_oe = cmd_fsm_curr.cmd_oe;
+
+    // Expected response: No response, short (? bit, Rx/Ry) response, long (? bit, Rx/Ry) response
+    typedef enum logic[1:0] {RESP_NONE, RESP_SHORT, RESP_LONG} RESP_MODE;
 
     always @(posedge clk_i or negedge rstn_i) begin
         if (rstn_i == 1'b0) begin
