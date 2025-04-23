@@ -22,8 +22,6 @@
             strs: [
                 "tb",
                 "dut",
-                "cmd_fsm",
-                "sreg",
             ],
         ))),
         items_tree: (
@@ -143,6 +141,12 @@
                     selected: false,
                 ),
                 (
+                    item_ref: (35),
+                    level: 0,
+                    unfolded: true,
+                    selected: false,
+                ),
+                (
                     item_ref: (28),
                     level: 0,
                     unfolded: true,
@@ -154,87 +158,58 @@
                     unfolded: true,
                     selected: false,
                 ),
+                (
+                    item_ref: (30),
+                    level: 0,
+                    unfolded: true,
+                    selected: false,
+                ),
+                (
+                    item_ref: (31),
+                    level: 0,
+                    unfolded: true,
+                    selected: false,
+                ),
+                (
+                    item_ref: (32),
+                    level: 0,
+                    unfolded: true,
+                    selected: false,
+                ),
+                (
+                    item_ref: (36),
+                    level: 0,
+                    unfolded: true,
+                    selected: false,
+                ),
+                (
+                    item_ref: (37),
+                    level: 0,
+                    unfolded: true,
+                    selected: false,
+                ),
+                (
+                    item_ref: (33),
+                    level: 0,
+                    unfolded: true,
+                    selected: false,
+                ),
+                (
+                    item_ref: (38),
+                    level: 0,
+                    unfolded: true,
+                    selected: false,
+                ),
+                (
+                    item_ref: (39),
+                    level: 0,
+                    unfolded: true,
+                    selected: false,
+                ),
             ],
         ),
         displayed_items: {
-            (12): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "tb",
-                        ],
-                    ),
-                    name: "wb_adr_i",
-                ),
-                color: None,
-                background_color: None,
-                display_name: "wb_adr_i [31:0]",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-            )),
-            (1): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "tb",
-                        ],
-                    ),
-                    name: "rstn",
-                ),
-                color: None,
-                background_color: None,
-                display_name: "rstn",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-            )),
-            (19): Divider((
-                color: None,
-                background_color: None,
-                name: None,
-            )),
-            (7): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "tb",
-                        ],
-                    ),
-                    name: "sd_cmd_oe",
-                ),
-                color: None,
-                background_color: None,
-                display_name: "sd_cmd_oe",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-            )),
-            (15): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "tb",
-                        ],
-                    ),
-                    name: "wb_ack_o",
-                ),
-                color: None,
-                background_color: None,
-                display_name: "wb_ack_o",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-            )),
-            (26): Variable((
+            (35): Variable((
                 variable_ref: (
                     path: (
                         strs: [
@@ -243,29 +218,11 @@
                             "cmd_fsm",
                         ],
                     ),
-                    name: "ctrl_start_i",
+                    name: "ctrl_resp_ack_i",
                 ),
                 color: None,
                 background_color: None,
-                display_name: "ctrl_start_i",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-            )),
-            (17): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "tb",
-                        ],
-                    ),
-                    name: "wb_we_i",
-                ),
-                color: None,
-                background_color: None,
-                display_name: "wb_we_i",
+                display_name: "ctrl_resp_ack_i",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
@@ -290,7 +247,46 @@
                 field_formats: [],
                 height_scaling_factor: None,
             )),
-            (5): Divider((
+            (9): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                        ],
+                    ),
+                    name: "sd_cmd_i",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "sd_cmd_i",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (21): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                            "dut",
+                            "cmd_fsm",
+                            "sreg",
+                        ],
+                    ),
+                    name: "shift_s_i",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "shift_s_i",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (10): Divider((
                 color: None,
                 background_color: None,
                 name: None,
@@ -313,25 +309,49 @@
                 field_formats: [],
                 height_scaling_factor: None,
             )),
-            (9): Variable((
+            (37): Variable((
                 variable_ref: (
                     path: (
                         strs: [
                             "tb",
+                            "dut",
                         ],
                     ),
-                    name: "sd_cmd_i",
+                    name: "status_idle_cmd_last",
                 ),
                 color: None,
                 background_color: None,
-                display_name: "sd_cmd_i",
+                display_name: "status_idle_cmd_last",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
                 field_formats: [],
                 height_scaling_factor: None,
             )),
-            (28): Variable((
+            (19): Divider((
+                color: None,
+                background_color: None,
+                name: None,
+            )),
+            (2): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                        ],
+                    ),
+                    name: "clk",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "clk",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (30): Variable((
                 variable_ref: (
                     path: (
                         strs: [
@@ -340,29 +360,88 @@
                             "cmd_fsm",
                         ],
                     ),
-                    name: "sd_clk_req_o",
+                    name: "resp_data_o",
                 ),
                 color: None,
                 background_color: None,
-                display_name: "sd_clk_req_o",
+                display_name: "resp_data_o [31:0]",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
                 field_formats: [],
                 height_scaling_factor: None,
             )),
-            (6): Variable((
+            (39): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                            "dut",
+                        ],
+                    ),
+                    name: "IRQ_FLAG_CMD_RESP",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "IRQ_FLAG_CMD_RESP",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (15): Variable((
                 variable_ref: (
                     path: (
                         strs: [
                             "tb",
                         ],
                     ),
-                    name: "sd_clk_o",
+                    name: "wb_ack_o",
                 ),
                 color: None,
                 background_color: None,
-                display_name: "sd_clk_o",
+                display_name: "wb_ack_o",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (32): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                            "dut",
+                            "cmd_fsm",
+                        ],
+                    ),
+                    name: "status_idle_o",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "status_idle_o",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (31): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                            "dut",
+                            "cmd_fsm",
+                        ],
+                    ),
+                    name: "status_resp_o",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "status_resp_o",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
@@ -390,6 +469,83 @@
                 field_formats: [],
                 height_scaling_factor: None,
             )),
+            (28): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                            "dut",
+                            "cmd_fsm",
+                        ],
+                    ),
+                    name: "sd_clk_req_o",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "sd_clk_req_o",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (1): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                        ],
+                    ),
+                    name: "rstn",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "rstn",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (26): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                            "dut",
+                            "cmd_fsm",
+                        ],
+                    ),
+                    name: "ctrl_start_i",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "ctrl_start_i",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (36): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                            "dut",
+                        ],
+                    ),
+                    name: "status_idle_cmd",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "status_idle_cmd",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
             (20): Variable((
                 variable_ref: (
                     path: (
@@ -410,39 +566,18 @@
                 field_formats: [],
                 height_scaling_factor: None,
             )),
-            (21): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "tb",
-                            "dut",
-                            "cmd_fsm",
-                            "sreg",
-                        ],
-                    ),
-                    name: "shift_s_i",
-                ),
-                color: None,
-                background_color: None,
-                display_name: "shift_s_i",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-            )),
-            (11): Variable((
+            (12): Variable((
                 variable_ref: (
                     path: (
                         strs: [
                             "tb",
                         ],
                     ),
-                    name: "wb_cyc_i",
+                    name: "wb_adr_i",
                 ),
                 color: None,
                 background_color: None,
-                display_name: "wb_cyc_i",
+                display_name: "wb_adr_i [31:0]",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
@@ -467,10 +602,106 @@
                 field_formats: [],
                 height_scaling_factor: None,
             )),
-            (10): Divider((
+            (5): Divider((
                 color: None,
                 background_color: None,
                 name: None,
+            )),
+            (6): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                        ],
+                    ),
+                    name: "sd_clk_o",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "sd_clk_o",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (38): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                            "dut",
+                        ],
+                    ),
+                    name: "IRQ_FLAG_CMD_DONE",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "IRQ_FLAG_CMD_DONE",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (33): Divider((
+                color: None,
+                background_color: None,
+                name: None,
+            )),
+            (11): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                        ],
+                    ),
+                    name: "wb_cyc_i",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "wb_cyc_i",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (17): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                        ],
+                    ),
+                    name: "wb_we_i",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "wb_we_i",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+            )),
+            (7): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "tb",
+                        ],
+                    ),
+                    name: "sd_cmd_oe",
+                ),
+                color: None,
+                background_color: None,
+                display_name: "sd_cmd_oe",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
             )),
             (13): Variable((
                 variable_ref: (
@@ -490,55 +721,34 @@
                 field_formats: [],
                 height_scaling_factor: None,
             )),
-            (2): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "tb",
-                        ],
-                    ),
-                    name: "clk",
-                ),
-                color: None,
-                background_color: None,
-                display_name: "clk",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-            )),
         },
-        display_item_ref_counter: 29,
+        display_item_ref_counter: 39,
         viewports: [
             (
-                curr_left: (-0.09074602591734043),
-                curr_right: (1.0554770285616553),
-                target_left: (0.0),
-                target_right: (1.0),
-                move_start_left: (0.0),
-                move_start_right: (1.0),
+                curr_left: (0.08302158162850293),
+                curr_right: (1.2292446045928742),
+                target_left: (-0.2),
+                target_right: (1.2),
+                move_start_left: (-0.2),
+                move_start_right: (1.2),
                 move_duration: None,
                 move_strategy: Instant,
             ),
         ],
         cursor: Some((1, [
-            9080203,
+            5310000,
         ])),
         markers: {},
-        focused_item: Some((20)),
+        focused_item: None,
         focused_transaction: (None, None),
         default_variable_name_type: Unique,
         scroll_offset: 0.0,
         display_variable_indices: true,
         graphics: {},
     )),
-    drag_started: false,
+    drag_started: true,
     drag_source_idx: None,
-    drag_target_idx: Some((
-        before: (9),
-        level: 0,
-    )),
+    drag_target_idx: None,
     previous_waves: None,
     count: None,
     blacklisted_translators: [],
@@ -565,6 +775,6 @@
         group_by_direction: false,
     ),
     rename_target: None,
-    sidepanel_width: Some(300.53125),
+    sidepanel_width: Some(300.0),
     ui_zoom_factor: None,
 )

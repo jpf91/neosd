@@ -39,12 +39,8 @@ module neosd (
     } NEOSD_STAT_REG;
 
     // Interrupt registers
-    typedef struct packed {
-        logic IRQ_CMD_DONE;
-    } IRQ_SET;
-
-    IRQ_SET NEOSD_IRQ_FLAG_REG;
-    IRQ_SET NEOSD_IRQ_MASK_REG;
+    logic IRQ_FLAG_CMD_RESP;
+    logic IRQ_FLAG_CMD_DONE;
 
     struct packed {
         // These are not stored here, just for documentation:
@@ -64,27 +60,30 @@ module neosd (
     wire wb_stall_o;
 
     logic clkstrb_i;
-    logic status_idle_cmd;
+    logic status_idle_cmd, status_resp_cmd;
+    logic status_resp_cmd_last, status_idle_cmd_last;
 
     // Wishbone Write Logic
     always @(posedge clk_i or negedge rstn_i) begin
         if (rstn_i == 1'b0) begin
             NEOSD_CTRL_REG <= '0;
             NEOSD_STAT_REG <= '0;
-            NEOSD_IRQ_FLAG_REG <= '0;
-            NEOSD_IRQ_MASK_REG <= '0;
+            IRQ_FLAG_CMD_DONE <= '0;
+            //NEOSD_IRQ_MASK_REG <= '0;
             // NEOSD_CMDARG_REG: Don't initialize
             NEOSD_CMD_REG_BASE <= '0; // Initialize only commit bit
             // NEOSD_RESP_REG: Don't initialize
             // NEOSD_DATA_REG: Don't initialize
         end else begin
-            // Flag auto-resets after CMD FSM read it
+            // Auto-reset after CMD FSM read those
             if (clkstrb_i == 1'b1) begin
                 NEOSD_CMD_REG_BASE.COMMIT <= 1'b0;
-                // FIXME
-                //if (sd_status_cmd_done == 1'b1)
-                //NEOSD_IRQ_FLAG_REG.IRQ_CMD_DONE <= 1'b1;
             end
+
+            // Edge triggered
+            status_idle_cmd_last <= status_idle_cmd;
+            if (status_idle_cmd == 1'b1 && status_idle_cmd_last == 1'b0)
+                IRQ_FLAG_CMD_DONE <= 1'b1;
 
             if (wb_stb_i && wb_we_i && !wb_stall_o) begin
                 case (wb_adr_i[7:0])
@@ -94,9 +93,9 @@ module neosd (
                         // NEOSD_STAT_REG is read-only
                     end
                     8'h08:
-                        NEOSD_IRQ_FLAG_REG <= wb_dat_i[$bits(NEOSD_IRQ_FLAG_REG):0];
-                    8'h0C:
-                        NEOSD_IRQ_MASK_REG <= wb_dat_i[$bits(NEOSD_IRQ_MASK_REG):0];
+                        IRQ_FLAG_CMD_DONE <= wb_dat_i[0];
+                    //8'h0C:
+                    //    NEOSD_IRQ_MASK_REG <= wb_dat_i[$bits(NEOSD_IRQ_MASK_REG):0];
                     8'h10: begin
                         // Handled async and forwarded to neosd_cmd_fsm
                     end
@@ -117,34 +116,46 @@ module neosd (
         end
     end
 
+    logic[31:0] cmd_resp_data;
     // Wishbone Read Logic
-    always @(posedge clk_i) begin
-        // Not needed for wishbone, but for neorv bus switch...
-        wb_dat_o <= '0;
-        if (wb_stb_i && !wb_we_i) begin
-            case (wb_adr_i[7:0])
-                8'h00:
-                    wb_dat_o[$bits(NEOSD_CTRL_REG):0] <= NEOSD_CTRL_REG;
-                8'h04:
-                    wb_dat_o[$bits(NEOSD_STAT_REG):0] <= NEOSD_STAT_REG;
-                8'h08:
-                    wb_dat_o[$bits(NEOSD_IRQ_FLAG_REG):0] <= NEOSD_IRQ_FLAG_REG;
-                8'h0C:
-                    wb_dat_o[$bits(NEOSD_IRQ_MASK_REG):0] <= NEOSD_IRQ_MASK_REG;
-                8'h10: begin
-                   // Reading CMDARG is not supported 
-                end
-                8'h14:
-                    wb_dat_o[$bits(NEOSD_CMD_REG_BASE):0] <= NEOSD_CMD_REG_BASE;
-                /*8'h18:
-                    wb_dat_o[31:0] <= NEOSD_RESP_REG;
-                8'h1C:
-                    wb_dat_o[31:0] <= NEOSD_DATA_REG;*/
+    always @(posedge clk_i or negedge rstn_i) begin
+        if (rstn_i == 1'b0) begin
+            IRQ_FLAG_CMD_RESP <= 1'b0;
+        end else begin    
+            status_resp_cmd_last <= status_resp_cmd;
+            if (status_resp_cmd == 1'b1 && status_resp_cmd_last == 1'b0)
+                IRQ_FLAG_CMD_RESP <= 1'b1;
 
-                default: begin
-                    // Read unknown addresses as 0
-                end
-            endcase
+            // Not needed for wishbone, but for neorv bus switch...
+            wb_dat_o <= '0;
+            if (wb_stb_i && !wb_we_i) begin
+                case (wb_adr_i[7:0])
+                    8'h00:
+                        wb_dat_o[$bits(NEOSD_CTRL_REG):0] <= NEOSD_CTRL_REG;
+                    8'h04:
+                        wb_dat_o[$bits(NEOSD_STAT_REG):0] <= NEOSD_STAT_REG;
+                    8'h08:
+                        wb_dat_o[1:0] <= {IRQ_FLAG_CMD_RESP, IRQ_FLAG_CMD_DONE};
+                    //8'h0C: 
+                    //    wb_dat_o[$bits(NEOSD_IRQ_MASK_REG):0] <= NEOSD_IRQ_MASK_REG;
+                    8'h10: begin
+                    // Reading CMDARG is not supported 
+                    end
+                    8'h14:
+                        wb_dat_o[$bits(NEOSD_CMD_REG_BASE):0] <= NEOSD_CMD_REG_BASE;
+                    8'h18: begin
+                        wb_dat_o[31:0] <= cmd_resp_data;
+                        IRQ_FLAG_CMD_RESP <= 1'b0;
+                    end
+                    /*
+                    8'h1C:
+                        wb_dat_o[31:0] <= NEOSD_DATA_REG;*/
+
+                    default: begin
+                        // Read unknown addresses as 0
+                    end
+                endcase
+            end
         end
     end
 
@@ -186,9 +197,12 @@ module neosd (
         .cmd_crc_load_i(cmd_crc_load),
         .cmd_arg_i(cmd_arg),
         .cmd_arg_load_i(cmd_arg_load),
+        .resp_data_o(cmd_resp_data),
 
         .status_idle_o(status_idle_cmd),
+        .status_resp_o(status_resp_cmd),
         .ctrl_start_i(NEOSD_CMD_REG_BASE.COMMIT),
+        .ctrl_resp_ack_i(~IRQ_FLAG_CMD_RESP),
         .ctrl_rmode_i(NEOSD_CMD_REG_BASE.RMODE),
 
         .sd_clk_req_o(sd_clk_req_cmd),

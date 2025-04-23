@@ -11,10 +11,13 @@ module neosd_cmd_fsm (
     input cmd_crc_load_i,
     input[31:0] cmd_arg_i,
     input[3:0] cmd_arg_load_i,
+    output[31:0] resp_data_o,
 
     // Status & control
     output status_idle_o,
+    output status_resp_o,
     input ctrl_start_i,
+    input ctrl_resp_ack_i,
     input[1:0] ctrl_rmode_i,
 
     // If we want to have an SD card clock active
@@ -50,7 +53,7 @@ module neosd_cmd_fsm (
         .data_s_o(sd_cmd_o)
     );
 
-    typedef enum logic[2:0] {STATE_IDLE, STATE_WRITE, STATE_WAIT_RESP, STATE_READ_RESP, STATE_TAIL} STATE;
+    typedef enum logic[2:0] {STATE_IDLE, STATE_WRITE, STATE_WAIT_RESP, STATE_READ_RESP, STATE_REGOUT, STATE_TAIL} STATE;
 
     typedef struct packed {
         STATE state;
@@ -63,6 +66,8 @@ module neosd_cmd_fsm (
     FSM_STATE cmd_fsm_next;
 
     assign status_idle_o = cmd_fsm_curr.state == STATE_IDLE;
+    assign status_resp_o = cmd_fsm_curr.state == STATE_REGOUT;
+    assign resp_data_o = cmd_reg_dout;
     assign cmd_reg_shift = sd_clk_en_i && cmd_fsm_curr.clk_req;
     assign sd_clk_req_o = cmd_fsm_curr.clk_req;
     assign sd_cmd_oe = cmd_fsm_curr.cmd_oe;
@@ -79,12 +84,11 @@ module neosd_cmd_fsm (
                         if (ctrl_start_i == 1'b1) begin
                             cmd_fsm_next.state = STATE_WRITE;
                             cmd_fsm_next.bit_counter = 0;
+                            cmd_fsm_next.cmd_oe = 1'b1;
+                            cmd_fsm_next.clk_req = 1'b1;
                         end
                     end
                     STATE_WRITE: begin
-                        cmd_fsm_next.cmd_oe = 1'b1;
-                        cmd_fsm_next.clk_req = 1'b1;
-
                         // TODO: Use the word counter and reduce bit counter to 32 bit to save one bit?
                         if (cmd_fsm_curr.bit_counter == 47) begin
                             cmd_fsm_next.bit_counter = 0;
@@ -123,12 +127,19 @@ module neosd_cmd_fsm (
                         if (cmd_fsm_curr.bit_counter == 31) begin
                             cmd_fsm_next.bit_counter = 0;
                             cmd_fsm_next.word_counter = cmd_fsm_curr.word_counter - 1;
-                            // FIXME: Let user read value here
+                            cmd_fsm_next.clk_req = 0;
+                            cmd_fsm_next.state = STATE_REGOUT;
+                        end else begin
+                            cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
+                        end
+                    end
+                    STATE_REGOUT: begin
+                        if (ctrl_resp_ack_i == 1'b1) begin
+                            cmd_fsm_next.clk_req = 1'b1;
+                            cmd_fsm_next.state = STATE_READ_RESP;
                             if (cmd_fsm_next.word_counter == 0) begin
                                 cmd_fsm_next.state = STATE_TAIL;
                             end
-                        end else begin
-                            cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
                         end
                     end
                     STATE_TAIL: begin

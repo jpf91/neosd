@@ -36,12 +36,21 @@ async def test_project(dut):
     await ClockCycles(dut.clk, 3)
 
     # CMDArg 0x10, IDX=0b101010 CRC=1110011 COMMIT, SHORT Response
-    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b00101010_01110011_00_01_00_0_1)])
+    # await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b00101010_01110011_00_01_00_0_1)])
 
-    await ClockCycles(dut.clk, 64*8)
-    dut.sd_cmd_i.value = 0
-    await ClockCycles(dut.clk, 48*8)
-    dut.sd_cmd_i.value = 1
+    # await ClockCycles(dut.clk, 64*8)
+    # dut.sd_cmd_i.value = 0
+    # await ClockCycles(dut.clk, 16*8)
+    # # Read flag reg, then read rdata reg
+    # await wbs.send_cycle([WBOp(0x8), WBOp(0x18)])
+
+    # # FIXME: Implement a proper SD card driver
+    # await ClockCycles(dut.clk, 33*8)
+    # dut.sd_cmd_i.value = 1
+    # # Read flag reg, then read rdata reg
+    # await wbs.send_cycle([WBOp(0x8), WBOp(0x18)])
+
+
 
     # CMDArg 0x10, IDX=0b110101 COMMIT, LONG Response
     # await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b1101010000000100001)])
@@ -51,10 +60,14 @@ async def test_project(dut):
     # await ClockCycles(dut.clk, 136*8)
     # dut.sd_cmd_i.value = 1
 
-    # CMDArg 0x10, IDX=0b110101 COMMIT, NO Response
-    # await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b1101010000000000001)])
-    # await ClockCycles(dut.clk, 64*8)
 
+
+    # CMDArg 0x10, IDX=0b110101 COMMIT, NO Response
+    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b00101010_01110011_00_00_00_0_1)])
+    await ClockCycles(dut.clk, 64*8)
+
+    # Clear done flag
+    await wbs.send_cycle([WBOp(0x8, 0b0)])
 
 
     await ClockCycles(dut.clk, 100)
