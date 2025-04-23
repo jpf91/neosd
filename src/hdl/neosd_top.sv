@@ -74,6 +74,7 @@ module neosd (
             NEOSD_CMD_REG_BASE <= '0; // Initialize only commit bit
             // NEOSD_RESP_REG: Don't initialize
             // NEOSD_DATA_REG: Don't initialize
+            status_idle_cmd_last <= 1'b1;
         end else begin
             // Auto-reset after CMD FSM read those
             if (clkstrb == 1'b1) begin
@@ -121,6 +122,7 @@ module neosd (
     always @(posedge clk_i or negedge rstn_i) begin
         if (rstn_i == 1'b0) begin
             IRQ_FLAG_CMD_RESP <= 1'b0;
+            status_resp_cmd_last <= 1'b0;
         end else begin    
             status_resp_cmd_last <= status_resp_cmd;
             if (status_resp_cmd == 1'b1 && status_resp_cmd_last == 1'b0)
