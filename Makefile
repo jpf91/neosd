@@ -10,7 +10,7 @@ export FLOW_HOME=/home/jpfau/Dokumente/orfs/flow
 # Generated variables
 ####################################################################################################
 export OBJDIR=build
-HDLDIR=src/hdl
+HDLDIR=rtl
 export SYN_SVERILOG_PATHS=$(addprefix $(HDLDIR)/,$(APP_SVERILOG))
 QUIET_FLAG=
 ifeq ($(strip $(VERBOSE)),)
