@@ -52,6 +52,8 @@ uint8_t neosd_cmd_crc(uint8_t cmd_idx, uint32_t cmd_arg)
 
 /**********************************************************************//**
 * Get CRC7 for a short response.
+*
+* @note According to SD specification, neosd_r3_t does not have a crc.
 **************************************************************************/
 uint8_t neosd_rshort_crc(neosd_rshort_t* data)
 {
@@ -61,6 +63,8 @@ uint8_t neosd_rshort_crc(neosd_rshort_t* data)
 
 /**********************************************************************//**
 * Validate CRC7 for a short response.
+*
+* @note According to SD specification, neosd_r3_t does not have a crc.
 **************************************************************************/
 bool neosd_rshort_check(neosd_rshort_t* data)
 {

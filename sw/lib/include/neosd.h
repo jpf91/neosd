@@ -74,6 +74,45 @@ extern "C" {
     typedef struct __attribute__((packed)) {
         bool _ebit: 1;
         uint8_t crc: 7;
+        uint32_t status: 32;
+        uint8_t cmd: 6;
+        bool _tbit: 1;
+        bool _sbit: 1;
+    } neosd_r1_t;
+
+    typedef struct __attribute__((packed)) {
+        bool _ebit: 1;
+        uint32_t reg0: 31;
+        uint32_t reg1: 32;
+        uint32_t reg2: 32;
+        uint32_t reg3: 32;
+        uint8_t _reserved: 6;
+        bool _tbit: 1;
+        bool _sbit: 1;
+    } neosd_r2_t;
+
+    typedef struct __attribute__((packed)) {
+        bool _ebit: 1;
+        uint8_t _reserved0: 7;
+        uint32_t ocr: 32;
+        uint8_t _reserved1: 6;
+        bool _tbit: 1;
+        bool _sbit: 1;
+    } neosd_r3_t;
+
+    typedef struct __attribute__((packed)) {
+        bool _ebit: 1;
+        uint8_t crc: 7;
+        uint16_t status: 16;
+        uint16_t rca: 16;
+        uint8_t cmd: 6;
+        bool _tbit: 1;
+        bool _sbit: 1;
+    } neosd_r6_t;
+
+    typedef struct __attribute__((packed)) {
+        bool _ebit: 1;
+        uint8_t crc: 7;
         uint8_t pattern: 8;
         uint8_t voltage: 4;
         bool pcie: 1;
@@ -85,6 +124,9 @@ extern "C" {
     } neosd_r7_t;
 
     typedef union {
+        neosd_r1_t r1;
+        neosd_r3_t r3;
+        neosd_r6_t r6;
         neosd_r7_t r7;
         struct __attribute__((packed)) {
             bool _ebit: 1;
@@ -101,6 +143,7 @@ extern "C" {
             uint32_t _dummy[3];
             neosd_rshort_t rshort;
         };
+        neosd_r2_t r2;
         uint32_t _raw[5];
     } neosd_res_t;
 
