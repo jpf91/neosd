@@ -1,1 +1,3 @@
 build/
+*.elf
+neorv32_exe.bin
