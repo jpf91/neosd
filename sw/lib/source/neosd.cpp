@@ -141,8 +141,9 @@ void neosd_enable()
  * Reset the neosd controller.
  *
  * @note This does not change / reset any register configuration!
+ * @note You may want to wait on neosd_busy() to check when reset is done.
  **************************************************************************/
-void neosd_reset()
+void neosd_begin_reset()
 {
     NEOSD->CTRL |= (1 << NEOSD_CTRL_RST);
     NEOSD->CTRL &= (1 << NEOSD_CTRL_RST);

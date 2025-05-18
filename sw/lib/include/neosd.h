@@ -7,6 +7,11 @@ extern "C" {
     #include <cstdint>
     #include <cstdlib>
 
+    #define NEOSD_DEBUG
+    #define NEOSD_DEBUG_CMDS
+
+    #define NEOSD_CMD_TIMEOUT 100
+
     // Replacing the internal SLINK
     //#define NEOSD_BASE   (0xFFEC0000U)
     // For XBUS
@@ -68,6 +73,12 @@ extern "C" {
         SD_CMD0          =  0,
         SD_CMD8          =  8
     };
+
+    typedef enum {
+        NEOSD_OK =  0,
+        NEOSD_NO_CARD = 1,
+        NEOSD_INCOMPAT_CARD = 2
+    } neosd_result_t;
 
     #define NEOSD ((neosd_t*) (NEOSD_BASE))
 
@@ -159,14 +170,15 @@ extern "C" {
     void neosd_set_clock_div(int prsc, int cdiv);
     void neosd_disable();
     void neosd_enable();
-    void neosd_reset();
+    void neosd_begin_reset();
     int neosd_busy();
 
     // Command functions
     void neosd_cmd_commit(SD_CMD_IDX cmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode);
 
     // Blocking functions (neosd_block.cpp)
-    bool neosd_cmd_wait_res(neosd_res_t* res);
+    void neosd_wait_idle();
+    bool neosd_cmd_wait_res(neosd_res_t* res, uint32_t rtimeout);
 
     // Debug code (neosd_dbg.cpp)
     void neosd_uart0_print_r7(neosd_rshort_t* rshort);
