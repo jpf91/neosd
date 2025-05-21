@@ -112,7 +112,7 @@ module neosd_cmd_fsm (
                                     cmd_fsm_next.word_counter = 5;
                                     // First register result should only read 8 bit, but 2 are read in
                                     // WAIT_RESP state, which does not advance counter
-                                    cmd_fsm_next.bit_counter = 11;
+                                    cmd_fsm_next.bit_counter = 27;
                                     cmd_fsm_next.state = STATE_WAIT_RESP;
                                 end
                             endcase
