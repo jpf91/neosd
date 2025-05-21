@@ -9,8 +9,27 @@ extern "C" {
 
     #define NEOSD_DEBUG
     #define NEOSD_DEBUG_CMDS
-
     #define NEOSD_CMD_TIMEOUT 100
+
+
+#ifdef NEOSD_DEBUG
+    #define NEOSD_DEBUG_MSG(...) neorv32_uart0_printf(__VA_ARGS__)
+    #ifdef NEOSD_DEBUG_CMDS
+        #define NEOSD_DEBUG_R7(...) neosd_uart0_print_r7(__VA_ARGS__)
+        #define NEOSD_DEBUG_R3(...) neosd_uart0_print_r3(__VA_ARGS__)
+        #define NEOSD_DEBUG_R1(...) neosd_uart0_print_r1(__VA_ARGS__)
+        #define NEOSD_DEBUG_R2(...) neosd_uart0_print_r2(__VA_ARGS__)
+        #define NEOSD_DEBUG_R6(...) neosd_uart0_print_r6(__VA_ARGS__)
+    #else
+        #define NEOSD_DEBUG_R7(...)
+        #define NEOSD_DEBUG_R3(...)
+        #define NEOSD_DEBUG_R1(...)
+        #define NEOSD_DEBUG_R2(...)
+        #define NEOSD_DEBUG_R6(...)
+    #endif
+#else
+    #define NEOSD_DEBUG_MSG(...)
+#endif
 
     // Replacing the internal SLINK
     //#define NEOSD_BASE   (0xFFEC0000U)
@@ -71,17 +90,43 @@ extern "C" {
 
     enum SD_CMD_IDX {
         SD_CMD0          =  0,
-        SD_CMD8          =  8
+        SD_CMD2          =  2,
+        SD_CMD3          =  3,
+        SD_CMD8          =  8,
+        SD_ACMD41        = 41,
+        SD_CMD55         = 55
     };
 
-    typedef enum {
+    enum {
+        SD_ACMD41_HCS = 30,
+        SD_ACMD41_XPC = 28,
+        SD_ACMD41_S18R = 24,
+        SD_ACMD41_OCR = 8
+    };
+
+    enum {
+        SD_R3_BUSY = 31,
+        SD_R3_CCS = 30,
+        SD_R3_UHS2 = 29,
+        SD_R3_S18A = 24
+    };
+
+    // Table 4-42 : Card Status
+    typedef union {
+        uint32_t _raw;
+    } sd_status_t;
+
+    enum SD_CODE {
         NEOSD_OK =  0,
         NEOSD_NO_CARD = 1,
-        NEOSD_INCOMPAT_CARD = 2
-    } neosd_result_t;
+        NEOSD_INCOMPAT_CARD = 2,
+        NEOSD_CRC_ERR = 3,
+        NEOSD_TIMEOUT = 4
+    };
 
     #define NEOSD ((neosd_t*) (NEOSD_BASE))
 
+    // 4.9 Responses
     typedef struct __attribute__((packed)) {
         bool _ebit: 1;
         uint8_t crc: 7;
@@ -148,6 +193,7 @@ extern "C" {
         };
         uint32_t _raw[2];
     } neosd_rshort_t;
+    
 
     typedef union {
         struct {
@@ -158,11 +204,38 @@ extern "C" {
         uint32_t _raw[5];
     } neosd_res_t;
 
+    typedef struct {
+        union {
+            struct __attribute__((packed)) {
+                uint8_t _dummy : 1;
+                uint8_t crc : 7;
+                uint16_t mdt : 12;
+                uint8_t _dummy2 : 4;
+                uint32_t psn;
+                uint8_t prv;
+                char pnm[5];
+                char oid[2];
+                uint8_t mid;
+            };
+            uint32_t _raw[4];
+        };
+    } cid_reg_t;
+
+    typedef struct {
+        uint8_t ccs: 1;
+        uint8_t uhs2: 1;
+        uint8_t s18a: 1;
+        uint32_t ocr;
+        cid_reg_t cid; // FIXME: Also get CSR?
+    } sd_card_t;
+
     // Low-level helper functions
     uint8_t neosd_crc7(const uint8_t* data, size_t length);
     uint8_t neosd_cmd_crc(uint8_t cmd_idx, uint32_t cmd_arg);
     uint8_t neosd_rshort_crc(neosd_rshort_t* data);
     bool neosd_rshort_check(neosd_rshort_t* data);
+    uint8_t neosd_rlong_crc(neosd_r2_t* data);
+    bool neosd_rlong_check(neosd_r2_t* data);
 
     // Generic driver functions
     void neosd_setup(int prsc, int cdiv, uint32_t irq_mask);
@@ -177,11 +250,17 @@ extern "C" {
     void neosd_cmd_commit(SD_CMD_IDX cmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode);
 
     // Blocking functions (neosd_block.cpp)
+    uint64_t neosd_clint_time_get_ms();
     void neosd_wait_idle();
     bool neosd_cmd_wait_res(neosd_res_t* res, uint32_t rtimeout);
+    SD_CODE neosd_acmd_commit(SD_CMD_IDX acmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode, sd_status_t* status);
 
     // Debug code (neosd_dbg.cpp)
     void neosd_uart0_print_r7(neosd_rshort_t* rshort);
+    void neosd_uart0_print_r3(neosd_rshort_t* rshort);
+    void neosd_uart0_print_r1(neosd_rshort_t* rshort);
+    void neosd_uart0_print_r6(neosd_rshort_t* rshort);
+    void neosd_uart0_print_r2(neosd_res_t* res);
 
 #ifdef __cplusplus
 }

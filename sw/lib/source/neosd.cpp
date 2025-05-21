@@ -71,6 +71,16 @@ bool neosd_rshort_check(neosd_rshort_t* data)
     return neosd_rshort_crc(data) == data->crc;
 }
 
+uint8_t neosd_rlong_crc(neosd_r2_t* data)
+{
+    return neosd_crc7((uint8_t*)data + 1, 15);
+}
+
+bool neosd_rlong_check(neosd_r2_t* data)
+{
+    return neosd_rlong_crc(data) == (data->reg0 & 0x7F);
+}
+
 /**********************************************************************//**
  * Initial setup for the SD module.
  **************************************************************************/
