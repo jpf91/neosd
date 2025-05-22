@@ -8,7 +8,8 @@ SRC_DIR = $(PWD)/../rtl
 PROJECT_SOURCES = neosd_cmd_reg.sv \
 	neosd_cmd_fsm.sv \
 	neosd_clk.sv \
-	neosd_top.sv
+	neosd_dat_crc.sv \
+	neosd_top.sv \
 
 # RTL simulation:
 SIM_BUILD = sim_build/rtl
@@ -19,10 +20,11 @@ COMPILE_ARGS 		+= -I$(SRC_DIR)
 
 # Include the testbench sources:
 VERILOG_SOURCES += $(PWD)/tb.v
-TOPLEVEL = tb
+VERILOG_SOURCES += $(PWD)/tb_crc.v
+TOPLEVEL = tb_crc
 
 # MODULE is the basename of the Python test file
-MODULE = test
+MODULE = test_crc
 
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim
