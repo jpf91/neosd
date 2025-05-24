@@ -23,10 +23,7 @@ module neosd (
     input sd_dat0_i,
     output sd_dat0_oe
 );
-    // Transfer on data lines: No data, busy signal flag, read block, write block
-    typedef enum logic[1:0] {DATA_NONE, DATA_BUSY, DATA_R, DATA_W} DATA_MODE;
-
-    // Control and status registers
+    // Control and status register
     struct packed {
         logic[2:0] CDIV;
         logic ABRT;
@@ -34,24 +31,16 @@ module neosd (
         logic EN;
     } NEOSD_CTRL_REG;
 
-    struct packed {
-        logic dummy;
-    } NEOSD_STAT_REG;
-
-    // Interrupt registers
+    // Interrupt flag register
     logic IRQ_FLAG_CMD_RESP;
     logic IRQ_FLAG_CMD_DONE;
+    logic IRQ_FLAG_DAT_DATA;
+    logic IRQ_FLAG_DAT_DONE;
 
+    // Command register
     struct packed {
-        // These are not stored here, just for documentation:
-        /*
-        logic[5:0] IDX;
-        logic _reserved1;
-        logic[6:0] CRC;
-        logic[1:0] _reserved0;
-        */
-        logic[1:0] RMODE; // 2 bit
-        DATA_MODE DMODE; // 2 bit
+        logic[1:0] RMODE;
+        logic[1:0] DMODE;
         logic LAST_BLOCK;
         logic COMMIT;
     } NEOSD_CMD_REG_BASE;
@@ -60,41 +49,71 @@ module neosd (
     logic wb_stall_o;
 
     logic clkstrb;
+    // Status signals from FSMs and latched signals for edge detection
     logic status_idle_cmd, status_resp_cmd;
-    logic status_resp_cmd_last, status_idle_cmd_last;
+    logic status_idle_cmd_last, status_resp_cmd_last;
+    logic status_idle_dat, status_data_dat;
+    logic status_idle_dat_last, status_data_dat_last;
+
+
+    // IRQ_FLAG_DAT_DATA gets cleared on read and write, so it get's its own block
+    always @(posedge clk_i or negedge rstn_i) begin
+        if (rstn_i == 1'b0) begin
+            IRQ_FLAG_DAT_DATA <= 1'b0;
+            status_data_dat_last <= 1'b0;
+        end else begin
+            // DAT DATA IRQ is edge triggered
+            status_data_dat_last <= status_data_dat;
+            if (status_data_dat == 1'b1 && status_data_dat_last == 1'b0)
+                IRQ_FLAG_DAT_DATA <= 1'b1;
+
+            if (wb_stb_i && (!wb_we_i || !wb_stall_o)) begin
+                if (wb_adr_i[7:0] == 8'h1C) begin
+                    IRQ_FLAG_DAT_DATA <= 1'b0;
+                end;
+            end
+        end
+    end
 
     // Wishbone Write Logic
     always @(posedge clk_i or negedge rstn_i) begin
         if (rstn_i == 1'b0) begin
             NEOSD_CTRL_REG <= '0;
-            NEOSD_STAT_REG <= '0;
             IRQ_FLAG_CMD_DONE <= '0;
-            //NEOSD_IRQ_MASK_REG <= '0;
+            IRQ_FLAG_DAT_DONE <= '0;
             // NEOSD_CMDARG_REG: Don't initialize
-            NEOSD_CMD_REG_BASE <= '0; // Initialize only commit bit
+            NEOSD_CMD_REG_BASE <= '0;
             // NEOSD_RESP_REG: Don't initialize
             // NEOSD_DATA_REG: Don't initialize
             status_idle_cmd_last <= 1'b1;
+            status_idle_dat_last <= 1'b1;
         end else begin
             // Auto-reset after CMD FSM read those
             if (clkstrb == 1'b1) begin
                 NEOSD_CMD_REG_BASE.COMMIT <= 1'b0;
             end
 
-            // Edge triggered
+            // CMD done IRQ is edge triggered
             status_idle_cmd_last <= status_idle_cmd;
             if (status_idle_cmd == 1'b1 && status_idle_cmd_last == 1'b0)
                 IRQ_FLAG_CMD_DONE <= 1'b1;
+
+            // DATA done IRQ is edge triggered
+            status_idle_dat_last <= status_idle_dat;
+            if (status_idle_dat == 1'b1 && status_idle_dat_last == 1'b0)
+                IRQ_FLAG_DAT_DONE <= 1'b1;
 
             if (wb_stb_i && wb_we_i && !wb_stall_o) begin
                 case (wb_adr_i[7:0])
                     8'h00:
                         NEOSD_CTRL_REG <= wb_dat_i[$bits(NEOSD_CTRL_REG):0];
                     8'h04: begin
-                        // NEOSD_STAT_REG is read-only
+                        // FIXME: REMOVE extra stat reg
                     end
-                    8'h08:
+                    8'h08: begin
                         IRQ_FLAG_CMD_DONE <= wb_dat_i[0];
+                        IRQ_FLAG_DAT_DONE <= wb_dat_i[2];
+                    end
                     //8'h0C:
                     //    NEOSD_IRQ_MASK_REG <= wb_dat_i[$bits(NEOSD_IRQ_MASK_REG):0];
                     8'h10: begin
@@ -106,8 +125,7 @@ module neosd (
                         // NEOSD_RESP_REG is read-only
                     end
                     8'h1C: begin
-                        // TODO: Can only be written in Block write mode.
-                        // TODO: Trigger something on written
+                        // Handled async and forwarded to neosd_dat_fsm
                     end
 
                     default: begin
@@ -118,30 +136,33 @@ module neosd (
     end
 
     logic[31:0] cmd_resp_data;
+    logic[31:0] dat_data_o;
     // Wishbone Read Logic
     always @(posedge clk_i or negedge rstn_i) begin
         if (rstn_i == 1'b0) begin
             IRQ_FLAG_CMD_RESP <= 1'b0;
             status_resp_cmd_last <= 1'b0;
         end else begin    
+            // CMD RESP IRQ is edge triggered
             status_resp_cmd_last <= status_resp_cmd;
             if (status_resp_cmd == 1'b1 && status_resp_cmd_last == 1'b0)
                 IRQ_FLAG_CMD_RESP <= 1'b1;
 
-            // Not needed for wishbone, but for neorv bus switch...
+            // For neorv bus switch
             wb_dat_o <= '0;
             if (wb_stb_i && !wb_we_i) begin
                 case (wb_adr_i[7:0])
                     8'h00:
                         wb_dat_o[$bits(NEOSD_CTRL_REG):0] <= NEOSD_CTRL_REG;
-                    8'h04:
-                        wb_dat_o[$bits(NEOSD_STAT_REG):0] <= NEOSD_STAT_REG;
+                    8'h04: begin
+
+                    end
                     8'h08:
-                        wb_dat_o[1:0] <= {IRQ_FLAG_CMD_RESP, IRQ_FLAG_CMD_DONE};
+                        wb_dat_o[3:0] <= {IRQ_FLAG_DAT_DATA, IRQ_FLAG_DAT_DONE, IRQ_FLAG_CMD_RESP, IRQ_FLAG_CMD_DONE};
                     //8'h0C: 
                     //    wb_dat_o[$bits(NEOSD_IRQ_MASK_REG):0] <= NEOSD_IRQ_MASK_REG;
                     8'h10: begin
-                    // Reading CMDARG is not supported 
+                        // Reading CMDARG is not supported 
                     end
                     8'h14:
                         wb_dat_o[$bits(NEOSD_CMD_REG_BASE):0] <= NEOSD_CMD_REG_BASE;
@@ -149,9 +170,9 @@ module neosd (
                         wb_dat_o[31:0] <= cmd_resp_data;
                         IRQ_FLAG_CMD_RESP <= 1'b0;
                     end
-                    /*
-                    8'h1C:
-                        wb_dat_o[31:0] <= NEOSD_DATA_REG;*/
+                    8'h1C: begin
+                        wb_dat_o[31:0] <= dat_data_o;
+                    end
 
                     default: begin
                         // Read unknown addresses as 0
@@ -173,14 +194,47 @@ module neosd (
     assign wb_stall_o = 1'b0;
     assign wb_err_o = 1'b0;
 
+    logic sd_clk_en;
+    logic sd_clk_req_dat, sd_clk_stall_dat;
+    logic dat_load;
+    logic dat_start;
 
+    neosd_dat_fsm dat_fsm (
+        .clk_i(clk_i),
+        .rstn_i(rstn_i),
+        .clkstrb_i(clkstrb),
 
-    // SD Implementation: DATA
-    assign sd_dat0_o = 1'b0;
-    assign sd_dat0_oe = 1'b0;
+        .dat_i(wb_dat_i),
+        .dat_load_i(dat_load),
+        .dat_o(dat_data_o),
+
+        .status_idle_o(status_idle_dat),
+        .status_data_o(status_data_dat),
+        .ctrl_start_i(dat_start),
+        .ctrl_dat_ack_i(~IRQ_FLAG_DAT_DATA),
+        .ctrl_last_block_i(NEOSD_CMD_REG_BASE.LAST_BLOCK),
+        .ctrl_dmode_i(NEOSD_CMD_REG_BASE.DMODE),
+
+        .sd_clk_req_o(sd_clk_req_dat),
+        .sd_clk_stall_o(sd_clk_stall_dat),
+        .sd_clk_en_i(sd_clk_en),
+        .sd_dat_oe(sd_dat0_oe),
+        .sd_dat_o(sd_dat0_o),
+        .sd_dat_i(sd_dat0_i)
+    );
+
+    // Forward register accesses to neosd_dat_fsm
+    always_comb begin
+        dat_load = 1'b0;
+        if (wb_stb_i && wb_we_i && !wb_stall_o) begin
+            if (wb_adr_i[7:0] == 8'h1C) begin
+                dat_load = 1'b1;
+            end
+        end
+    end
 
     // SD Implementation: CMD
-    logic sd_clk_req_cmd, sd_clk_stall_cmd, sd_clk_en;
+    logic sd_clk_req_cmd, sd_clk_stall_cmd;
 
     logic[5:0] cmd_idx;
     logic cmd_idx_load;
@@ -207,6 +261,8 @@ module neosd (
         .ctrl_start_i(NEOSD_CMD_REG_BASE.COMMIT),
         .ctrl_resp_ack_i(~IRQ_FLAG_CMD_RESP),
         .ctrl_rmode_i(NEOSD_CMD_REG_BASE.RMODE),
+        .ctrl_dmode_i(NEOSD_CMD_REG_BASE.DMODE),
+        .start_dat_o(dat_start),
 
         .sd_clk_req_o(sd_clk_req_cmd),
         .sd_clk_stall_o(sd_clk_stall_cmd),
@@ -249,8 +305,8 @@ module neosd (
         .clkgen_i(clkgen_i),
         .sd_clksel_i(NEOSD_CTRL_REG.CDIV),
         .clkstrb_o(clkstrb),
-        .sd_clk_req_i({sd_clk_req_cmd, 1'b0}),
-        .sd_clk_stall_i({sd_clk_stall_cmd, 1'b0}),
+        .sd_clk_req_i({sd_clk_req_cmd, sd_clk_req_dat}),
+        .sd_clk_stall_i({sd_clk_stall_cmd, sd_clk_stall_dat}),
         .sd_clk_en_o(sd_clk_en),
         .sd_clk_o(sd_clk_o)
     );

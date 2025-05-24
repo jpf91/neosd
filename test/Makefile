@@ -9,6 +9,8 @@ PROJECT_SOURCES = neosd_cmd_reg.sv \
 	neosd_cmd_fsm.sv \
 	neosd_clk.sv \
 	neosd_dat_crc.sv \
+	neosd_dat_reg.sv \
+	neosd_dat_fsm.sv \
 	neosd_top.sv \
 
 # RTL simulation:
@@ -21,10 +23,10 @@ COMPILE_ARGS 		+= -I$(SRC_DIR)
 # Include the testbench sources:
 VERILOG_SOURCES += $(PWD)/tb.v
 VERILOG_SOURCES += $(PWD)/tb_crc.v
-TOPLEVEL = tb_crc
+TOPLEVEL = tb
 
 # MODULE is the basename of the Python test file
-MODULE = test_crc
+MODULE = test
 
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim

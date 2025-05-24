@@ -62,12 +62,38 @@ async def test_project(dut):
 
 
 
-    # CMDArg 0x10, IDX=0b110101 COMMIT, NO Response
-    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b00101010_01110011_00_00_00_0_1)])
+    # # CMDArg 0x10, IDX=0b110101 COMMIT, NO Response
+    # await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b00101010_01110011_00_00_00_0_1)])
+    # await ClockCycles(dut.clk, 64*8)
+
+    # # Clear done flag
+    # await wbs.send_cycle([WBOp(0x8, 0b0)])
+
+    # CMDArg 0x10, IDX=0b101010 CRC=1110011 SHORT Response, READ BLOCK, LAST BLOCK, COMMIT
+    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b00101010_01110011_00_01_10_1_1)])
     await ClockCycles(dut.clk, 64*8)
 
-    # Clear done flag
-    await wbs.send_cycle([WBOp(0x8, 0b0)])
+    # Read full response
+    dut.sd_cmd_i.value = 0
+    await ClockCycles(dut.clk, 16*8)
+    # Read flag reg, then read rdata reg
+    await wbs.send_cycle([WBOp(0x8), WBOp(0x18)])
+
+    await ClockCycles(dut.clk, 34*8)
+    # Read flag reg, then read rdata reg
+    await wbs.send_cycle([WBOp(0x8), WBOp(0x18)])
 
 
-    await ClockCycles(dut.clk, 100)
+    # Now we should start reading the data
+    dut.sd_dat0_i.value = 0
+    await ClockCycles(dut.clk, 36*8)
+    # Read flag reg, then read data reg
+    await wbs.send_cycle([WBOp(0x8), WBOp(0x1C)])
+
+
+    # Clear rdone flag
+    #await wbs.send_cycle([WBOp(0x8, 0b0)])
+
+
+
+    await ClockCycles(dut.clk, 100 * 8)

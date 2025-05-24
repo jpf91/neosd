@@ -19,6 +19,8 @@ module neosd_cmd_fsm (
     input ctrl_start_i,
     input ctrl_resp_ack_i,
     input[1:0] ctrl_rmode_i,
+    input[1:0] ctrl_dmode_i,
+    output start_dat_o,
 
     // If we want to have an SD card clock active
     output sd_clk_req_o,
@@ -60,6 +62,7 @@ module neosd_cmd_fsm (
         logic[2:0] word_counter;
         logic clk_req;
         logic cmd_oe;
+        logic start_dat;
     } FSM_STATE;
     FSM_STATE cmd_fsm_curr;
     FSM_STATE cmd_fsm_next;
@@ -71,6 +74,7 @@ module neosd_cmd_fsm (
     assign sd_clk_req_o = cmd_fsm_curr.clk_req;
     assign sd_clk_stall_o = 1'b0; // FIXME
     assign sd_cmd_oe = cmd_fsm_curr.cmd_oe;
+    assign start_dat_o = cmd_fsm_curr.start_dat;
 
     // Expected response: No response, short (? bit, Rx/Ry) response, long (? bit, Rx/Ry) response
     typedef enum logic[1:0] {RESP_NONE, RESP_SHORT, RESP_LONG} RESP_MODE;
@@ -82,6 +86,8 @@ module neosd_cmd_fsm (
             if (clkstrb_i == 1'b1) begin
                 // State transition logic
                 cmd_fsm_next = cmd_fsm_curr;
+                // Resets after one cycle, one-shot signal
+                cmd_fsm_next.start_dat = 0;
                 case (cmd_fsm_curr.state)
                     STATE_IDLE: begin
                         if (ctrl_start_i == 1'b1) begin
@@ -92,7 +98,6 @@ module neosd_cmd_fsm (
                         end
                     end
                     STATE_WRITE: begin
-                        // TODO: Use the word counter and reduce bit counter to 32 bit to save one bit?
                         if (cmd_fsm_curr.bit_counter == 47) begin
                             cmd_fsm_next.bit_counter = 0;
                             cmd_fsm_next.cmd_oe = 1'b0;
@@ -141,7 +146,14 @@ module neosd_cmd_fsm (
                             cmd_fsm_next.clk_req = 1'b1;
                             cmd_fsm_next.state = STATE_READ_RESP;
                             if (cmd_fsm_next.word_counter == 0) begin
-                                cmd_fsm_next.state = STATE_TAIL;
+                                if (ctrl_dmode_i == 0) begin
+                                    cmd_fsm_next.state = STATE_TAIL;
+                                end else begin
+                                    // If we need to follow up with data line, hand over
+                                    cmd_fsm_next.state = STATE_IDLE;
+                                    cmd_fsm_next.clk_req = 1'b0;
+                                    cmd_fsm_next.start_dat = 1;
+                                end
                             end
                         end
                     end

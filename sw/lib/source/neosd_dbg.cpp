@@ -44,7 +44,8 @@ void neosd_uart0_print_r1(neosd_rshort_t* rshort)
 void neosd_uart0_print_r2(neosd_res_t* resp)
 {
     neosd_r2_t* r2 = &resp->r2;
-    neorv32_uart0_printf("NEOSD: R2 RAW: %x %x %x %x %x\n", resp->_raw[4], resp->_raw[3], resp->_raw[2], resp->_raw[1], resp->_raw[0]);
+    neorv32_uart0_printf("NEOSD: R2 RAW: %x %x %x %x %x\n", resp->_raw[4], resp->_raw[3],
+        resp->_raw[2], resp->_raw[1], resp->_raw[0]);
     neorv32_uart0_printf("NEOSD: R2 REG: %x %x %x %x\n", r2->reg3, r2->reg2, r2->reg1, r2->reg0);
     neorv32_uart0_printf("NEOSD: R2 CRC: %x CALC: %x OK: %d\n", r2->reg0 & 0x7F,
         neosd_rlong_crc(r2), neosd_rlong_check(r2));
