@@ -33,6 +33,9 @@ module neosd_cmd_fsm (
     output sd_cmd_o,
     input sd_cmd_i
 );
+    // Transfer on data lines: No data, busy signal flag, read block, write block
+    typedef enum logic[1:0] {DATA_NONE, DATA_BUSY, DATA_R, DATA_W} DATA_MODE;
+
     // Hardwire to wishbone bus but load only if proper address selected
     logic[47:0] cmd_reg_din;
     logic[5:0] cmd_reg_load;
@@ -101,6 +104,12 @@ module neosd_cmd_fsm (
                         if (cmd_fsm_curr.bit_counter == 47) begin
                             cmd_fsm_next.bit_counter = 0;
                             cmd_fsm_next.cmd_oe = 1'b0;
+
+                            // In read commands, data can arrive starting 2 clocks from last CMD bit
+                            if (ctrl_dmode_i == DATA_R) begin
+                                cmd_fsm_next.start_dat = 1;
+                            end
+
                             case (ctrl_rmode_i)
                                 RESP_NONE: begin
                                     cmd_fsm_next.state = STATE_TAIL;
@@ -146,14 +155,13 @@ module neosd_cmd_fsm (
                             cmd_fsm_next.clk_req = 1'b1;
                             cmd_fsm_next.state = STATE_READ_RESP;
                             if (cmd_fsm_next.word_counter == 0) begin
-                                if (ctrl_dmode_i == 0) begin
-                                    cmd_fsm_next.state = STATE_TAIL;
-                                end else begin
-                                    // If we need to follow up with data line, hand over
-                                    cmd_fsm_next.state = STATE_IDLE;
-                                    cmd_fsm_next.clk_req = 1'b0;
+                                // Write blocks at earliest 2 clocks from last response bit
+                                // We just assume same ting for busy (R1b), this is not specified
+                                if (ctrl_dmode_i == DATA_W || ctrl_dmode_i == DATA_BUSY) begin
                                     cmd_fsm_next.start_dat = 1;
                                 end
+                                // Even if data FSM kicks in, just go to tail. Both can run parallel
+                                cmd_fsm_next.state = STATE_TAIL;
                             end
                         end
                     end

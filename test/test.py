@@ -25,6 +25,8 @@ async def test_project(dut):
                     "datrd":"wb_dat_o",
                     "ack":  "wb_ack_o" })
 
+    dut.sd_dat0_i.value = 1
+
     # Reset
     dut._log.info("Reset")
     dut.rstn.value = 0

@@ -15,7 +15,7 @@ module neosd_dat_reg (
 
     always @(posedge clk_i or negedge rstn_i) begin
         if (rstn_i == 1'b0) begin
-            data_p_o <= '0;
+            data_p_o <= '1;
         end else begin
             // Load using fast clock
             if (load_p_i != 1'b0) begin
