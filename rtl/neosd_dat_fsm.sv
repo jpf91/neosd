@@ -43,7 +43,6 @@ module neosd_dat_fsm (
         .data_s_o(sd_dat_o)
     );
 
-    // FIXME: Support R1b. Figure out this busy bit... Figure 3-9
     typedef enum logic[3:0] {STATE_IDLE, STATE_WAIT_BLOCK, STATE_READ_BLOCK, STATE_REGOUT, STATE_READ_CRC,
         STATE_WRITE_BLOCK, STATE_REGIN, STATE_WRITE_CRC, STATE_WAIT_BUSY, STATE_TAIL} STATE;
 
@@ -52,6 +51,7 @@ module neosd_dat_fsm (
         logic[5:0] bit_counter;
         logic[8:0] word_counter;
         logic clk_req;
+        logic clk_stall;
         logic dat_oe;
     } FSM_STATE;
     FSM_STATE dat_fsm_curr;
@@ -62,7 +62,7 @@ module neosd_dat_fsm (
     assign dat_o = dat_reg_dout;
     assign dat_reg_shift = sd_clk_en_i && dat_fsm_curr.clk_req;
     assign sd_clk_req_o = dat_fsm_curr.clk_req;
-    assign sd_clk_stall_o = 1'b0; // FIXME
+    assign sd_clk_stall_o = dat_fsm_curr.clk_stall;
     assign sd_dat_oe = dat_fsm_curr.dat_oe;
 
     // Transfer on data lines: No data, busy signal flag, read block, write block
@@ -113,7 +113,7 @@ module neosd_dat_fsm (
                         if (dat_fsm_curr.bit_counter == 31) begin
                             dat_fsm_next.bit_counter = 0;
                             dat_fsm_next.word_counter = dat_fsm_curr.word_counter - 1;
-                            dat_fsm_next.clk_req = 0;
+                            dat_fsm_next.clk_stall = 1;
                             dat_fsm_next.state = STATE_REGOUT;
                         end else begin
                             dat_fsm_next.bit_counter = dat_fsm_curr.bit_counter + 1;
@@ -121,7 +121,7 @@ module neosd_dat_fsm (
                     end
                     STATE_REGOUT: begin
                         if (ctrl_dat_ack_i == 1'b1) begin
-                            dat_fsm_next.clk_req = 1'b1;
+                            dat_fsm_next.clk_stall = 1'b0;
                             dat_fsm_next.state = STATE_READ_BLOCK;
                             if (dat_fsm_next.word_counter == 0) begin
                                 dat_fsm_next.state = STATE_READ_CRC;
@@ -141,7 +141,7 @@ module neosd_dat_fsm (
                         if (dat_fsm_curr.bit_counter == 31) begin
                             dat_fsm_next.bit_counter = 0;
                             dat_fsm_next.word_counter = dat_fsm_curr.word_counter - 1;
-                            dat_fsm_next.clk_req = 0;
+                            dat_fsm_next.clk_stall = 1'b1;
                             dat_fsm_next.state = STATE_REGIN;
                         end else begin
                             dat_fsm_next.bit_counter = dat_fsm_curr.bit_counter + 1;
@@ -149,8 +149,7 @@ module neosd_dat_fsm (
                     end
                     STATE_REGIN: begin
                         if (ctrl_dat_ack_i == 1'b1) begin
-                            // FIXME: Load reg? But i think this is done with external signal
-                            dat_fsm_next.clk_req = 1'b1;
+                            dat_fsm_next.clk_stall = 1'b0;
                             dat_fsm_next.state = STATE_WRITE_BLOCK;
                             if (dat_fsm_next.word_counter == 0) begin
                                 dat_fsm_next.state = STATE_WRITE_CRC;

@@ -64,6 +64,7 @@ module neosd_cmd_fsm (
         logic[5:0] bit_counter;
         logic[2:0] word_counter;
         logic clk_req;
+        logic clk_stall;
         logic cmd_oe;
         logic start_dat;
     } FSM_STATE;
@@ -75,7 +76,7 @@ module neosd_cmd_fsm (
     assign resp_data_o = cmd_reg_dout;
     assign cmd_reg_shift = sd_clk_en_i && cmd_fsm_curr.clk_req;
     assign sd_clk_req_o = cmd_fsm_curr.clk_req;
-    assign sd_clk_stall_o = 1'b0; // FIXME
+    assign sd_clk_stall_o = cmd_fsm_curr.clk_stall;
     assign sd_cmd_oe = cmd_fsm_curr.cmd_oe;
     assign start_dat_o = cmd_fsm_curr.start_dat;
 
@@ -144,7 +145,7 @@ module neosd_cmd_fsm (
                         if (cmd_fsm_curr.bit_counter == 31) begin
                             cmd_fsm_next.bit_counter = 0;
                             cmd_fsm_next.word_counter = cmd_fsm_curr.word_counter - 1;
-                            cmd_fsm_next.clk_req = 0;
+                            cmd_fsm_next.clk_stall = 1;
                             cmd_fsm_next.state = STATE_REGOUT;
                         end else begin
                             cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
@@ -152,7 +153,7 @@ module neosd_cmd_fsm (
                     end
                     STATE_REGOUT: begin
                         if (ctrl_resp_ack_i == 1'b1) begin
-                            cmd_fsm_next.clk_req = 1'b1;
+                            cmd_fsm_next.clk_stall = 1'b0;
                             cmd_fsm_next.state = STATE_READ_RESP;
                             if (cmd_fsm_next.word_counter == 0) begin
                                 // Write blocks at earliest 2 clocks from last response bit
