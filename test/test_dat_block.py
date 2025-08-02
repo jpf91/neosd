@@ -164,10 +164,7 @@ async def test_d4_write(dut):
     for i in range(4):
         await clkstrb(dut)
 
-    # Can now read CRC0 from data_p_o[0,4,8] end bit in data_p_o[12]
-    # Can now read CRC1 from data_p_o[0+1,4+1,8+1] end bit in data_p_o[12+1]
-    # Can now read CRC2 from data_p_o[0+2,4+2,8+2] end bit in data_p_o[12+2]
-    # Can now read CRC3 from data_p_o[0+3,4+3,8+3] end bit in data_p_o[12+3]
+    # Can now read CRCs from data_p_o (need to respect mapping though...)
 
     await ClockCycles(dut.clk_i, 16)
 
@@ -233,7 +230,7 @@ async def test_d1_write(dut):
     for i in range(4):
         await clkstrb(dut)
 
-    # Can now read CRC from data_p_o[0,4,8] end bit in data_p_o[12]
+    # Can now read CRC from data_p_o (need to respect mapping though...)
 
     await ClockCycles(dut.clk_i, 16)
 
@@ -252,6 +249,6 @@ async def test_project(dut):
     dut.rstn_i.value = 1
 
     #await test_d4_read(dut)
-    #await test_d1_read(dut)
-    await test_d4_write(dut)
+    await test_d1_read(dut)
+    #await test_d4_write(dut)
     #await test_d1_write(dut)

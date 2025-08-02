@@ -34,9 +34,18 @@ module tb_dat_block ();
   
     wire shift_s_i;
     wire crc_nonzero_o;
-    wire [31:0] data_p_i;
+    wire [31:0] data_p_i, data_p_i_rot;
     wire load_p_i;
-    wire [31:0] data_p_o;
+    wire [31:0] data_p_o, data_p_o_rot;
+
+    // Properly assign the reg_data_p_i/o for all registers: BE / LE swap
+    genvar i, j;
+    generate
+      for (i = 0; i < 4; i = i + 1) begin: regs
+        assign data_p_i_rot[(i+1)*8-1:i*8] = data_p_i[(3-i+1)*8-1:(3-i)*8];
+        assign data_p_o[(i+1)*8-1:i*8] = data_p_o_rot[(3-i+1)*8-1:(3-i)*8];
+      end
+    endgenerate
   
     neosd_dat_block u_neosd_dat_block (
       .clk_i(clk_i),
@@ -60,9 +69,9 @@ module tb_dat_block ();
 
       .shift_s_i(shift_s_i),
       .crc_nonzero_o(crc_nonzero_o),
-      .data_p_i(data_p_i),
+      .data_p_i(data_p_i_rot),
       .load_p_i(load_p_i),
-      .data_p_o(data_p_o)
+      .data_p_o(data_p_o_rot)
     );
 
 endmodule

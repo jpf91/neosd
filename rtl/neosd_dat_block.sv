@@ -54,10 +54,10 @@ module neosd_dat_block (
     logic[1:0] reg_active_n;
     always @(posedge clk_i or negedge rstn_i) begin
         if (rstn_i == 1'b0) begin
-            reg_active_n <= '0;
+            reg_active_n <= 2'd3;
         end else begin
             if (clkstrb_i == 1'b1 && shift_s_i == 1'b1 && ctrl_rot_reg == 1'b1) begin
-                reg_active_n <= reg_active_n + 1;
+                reg_active_n <= reg_active_n - 1;
             end
         end
     end
@@ -116,8 +116,8 @@ module neosd_dat_block (
         end
     endgenerate
 
-    // Drive outputs from muxes. dat0 in D0 mode muxes from all regs
-    assign sd_dat0_o = mux_data_s_o[reg_active_n & {2{!ctrl_d4_i}}];
+    // Drive outputs from muxes. dat0 in D0 mode muxes from all regs, but CRC output is always 0
+    assign sd_dat0_o = mux_data_s_o[reg_active_n & {2{!ctrl_d4_i & (ctrl_omux_i != 2'b11)}}];
     assign sd_dat1_o = mux_data_s_o[1];
     assign sd_dat2_o = mux_data_s_o[2];
     assign sd_dat3_o = mux_data_s_o[3];
