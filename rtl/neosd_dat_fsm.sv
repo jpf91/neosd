@@ -57,6 +57,10 @@ module neosd_dat_fsm (
     FSM_STATE dat_fsm_curr;
     FSM_STATE dat_fsm_next;
 
+    // TODO: Remove
+    STATE dbg_state;
+    assign dbg_state = dat_fsm_curr.state;
+
     assign status_idle_o = dat_fsm_curr.state == STATE_IDLE;
     assign status_data_o = dat_fsm_curr.state == STATE_REGOUT;
     assign dat_o = dat_reg_dout;
