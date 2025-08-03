@@ -5,7 +5,7 @@ module neosd_clk (
     input[2:0] sd_clksel_i,
 
     // Strobe used to sample / emit sd_cmd signals
-    output clkstrb_o,
+    output reg clkstrb_o,
 
     // If we want to have an SD card clock active
     input[1:0] sd_clk_req_i,
@@ -25,13 +25,16 @@ module neosd_clk (
     // Divided clock used to generate sd_clk_o
     assign sd_clk_div = clkgen_i[sd_clksel_i];
     // Divided clock used to sample / output data signals
-    assign clkstrb_o = sd_clk_div & sd_clk_div_last; 
+    logic clkstrb_tmp;
+    assign clkstrb_tmp = sd_clk_div & sd_clk_div_last; 
 
     always @(posedge clk_i or negedge rstn_i) begin
         if (rstn_i == 1'b0) begin
             sd_clk_o <= 1'b0;
             sd_clk_div_last <= 1'b0;
         end else begin
+            // sd_clk_div_last is delayed one cycle. So delay clkstrb_tmp here to really match falling edge
+            clkstrb_o <= clkstrb_tmp;
             if (sd_clk_div == 1'b1) begin
                 sd_clk_div_last <= !sd_clk_div_last;
                 if (sd_clk_en_o == 1'b1)
