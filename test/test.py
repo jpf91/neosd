@@ -1,6 +1,6 @@
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles, RisingEdge
+from cocotb.triggers import ClockCycles, RisingEdge, FallingEdge
 
 from cocotbext.wishbone.driver import WishboneMaster
 from cocotbext.wishbone.driver import WBOp
@@ -71,7 +71,7 @@ async def test_old(dut):
 
 async def test_read_block(dut, wbs):
     # Now we should start reading the data
-    await RisingEdge(dut.sd_clk_o)
+    await FallingEdge(dut.sd_clk_o)
     dut.sd_dat0_i.value = 0
     dut.sd_dat1_i.value = 0
     dut.sd_dat2_i.value = 0
@@ -80,12 +80,12 @@ async def test_read_block(dut, wbs):
     # 512*8bit
     for word in range(128):
         # Transfer 32 bit of data
-        await RisingEdge(dut.sd_clk_o)
+        await FallingEdge(dut.sd_clk_o)
         dut.sd_dat0_i.value = 1
         dut.sd_dat1_i.value = 1
         dut.sd_dat2_i.value = 1
         dut.sd_dat3_i.value = 1
-        await ClockCycles(dut.sd_clk_o, 31)
+        await ClockCycles(dut.sd_clk_o, 7)
         await ClockCycles(dut.clk, 8)
         # Read flags and data
         await wbs.send_cycle([WBOp(0x8), WBOp(0x1C)])
@@ -128,7 +128,7 @@ async def test_project(dut):
     dut.rstn.value = 1
 
     # CDIV = 4, D4MODE
-    await wbs.send_cycle([WBOp(0x0, 0b000010), WBOp(0x0, 0b0000000), WBOp(0x0, 0b0_001_0_0_1), WBOp(0x0)])
+    await wbs.send_cycle([WBOp(0x0, 0b000010), WBOp(0x0, 0b0000000), WBOp(0x0, 0b1_001_0_0_1), WBOp(0x0)])
     await ClockCycles(dut.clk, 3)
 
 
