@@ -34,3 +34,6 @@ include $(NEORV32_HOME)/sw/common/common.mk
 
 sim-check: sim
 	cat $(NEORV32_HOME)/sim/neorv32.uart0_sim_mode.out | grep "Hello world! :)"
+
+upload-uart: exe
+	cd ../../../../../ && make SW_FILE=lib/neosd/sw/example/hello_sd/neorv32_exe.bin upload-app-uart

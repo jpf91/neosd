@@ -54,12 +54,19 @@ extern "C" {
         NEOSD_CTRL_CDIV0         =  3, // actually PRSCL
         NEOSD_CTRL_CDIV1         =  4,
         NEOSD_CTRL_CDIV2         =  5,
-        NEOSD_CTRL_CDIV3         =  6
+        NEOSD_CTRL_D4BIT         =  6
     };
 
     enum NEOSD_IRQ_enum {
         NEOSD_IRQ_CMD_DONE       =  0,
-        NEOSD_IRQ_CMD_RESP       =  1
+        NEOSD_IRQ_CMD_RESP       =  1,
+        NEOSD_IRQ_DAT_DONE       =  2,
+        NEOSD_IRQ_DAT_DATA       =  3,
+        NEOSD_IRQ_DAT_BLOCK      =  4,
+    };
+
+    enum NEOSD_STAT_enum {
+        NEOSD_STAT_CRCOK         =  5,
     };
 
     enum NEOSD_CMD_enum {
@@ -247,13 +254,13 @@ extern "C" {
     int neosd_busy();
 
     // Command functions
-    void neosd_cmd_commit(SD_CMD_IDX cmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode);
+    void neosd_cmd_commit(SD_CMD_IDX cmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode, bool stopDAT = false);
 
     // Blocking functions (neosd_block.cpp)
     uint64_t neosd_clint_time_get_ms();
     void neosd_wait_idle();
     bool neosd_cmd_wait_res(neosd_res_t* res, uint32_t rtimeout);
-    SD_CODE neosd_acmd_commit(SD_CMD_IDX acmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode, sd_status_t* status);
+    SD_CODE neosd_acmd_commit(SD_CMD_IDX acmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode, sd_status_t* status, size_t rca = 0);
 
     // Debug code (neosd_dbg.cpp)
     void neosd_uart0_print_r7(neosd_rshort_t* rshort);

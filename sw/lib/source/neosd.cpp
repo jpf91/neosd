@@ -180,11 +180,13 @@ int neosd_busy()
 /**********************************************************************//**
  * Commit a new command to SD controller.
  **************************************************************************/
-void neosd_cmd_commit(SD_CMD_IDX cmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode)
+void neosd_cmd_commit(SD_CMD_IDX cmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode, bool stopDAT)
 {
+    uint32_t stopBit = stopDAT ? (1 << NEOSD_CMD_LAST_BLOCK) : 0;
     NEOSD->CMDARG = arg;
     NEOSD->CMD = (1 << NEOSD_CMD_COMMIT) | (dmode << NEOSD_CMD_DMODE0) |
         (rmode << NEOSD_CMD_RMODE0) | (cmd << NEOSD_CMD_IDX_LSB) |
+        stopBit |
         (neosd_cmd_crc(cmd, arg) << NEOSD_CMD_CRC_LSB);
 }
 

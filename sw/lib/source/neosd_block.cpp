@@ -53,12 +53,11 @@ bool neosd_cmd_wait_res(neosd_res_t* res, uint32_t rtimeout)
 }
 
 SD_CODE neosd_acmd_commit(SD_CMD_IDX acmd, uint32_t arg, NEOSD_RMODE rmode,
-    NEOSD_DMODE dmode, sd_status_t* status)
+    NEOSD_DMODE dmode, sd_status_t* status, size_t rca)
 {
     // 4.3.9.1 Application-Specific Command – APP_CMD (CMD55)
 
-    // Hardcode RCA as 0, we don't support it
-    neosd_cmd_commit(SD_CMD55, 0, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE);
+    neosd_cmd_commit(SD_CMD55, rca << 16, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE);
     NEOSD_DEBUG_MSG("NEOSD: Sent CMD55\n");
 
     neosd_res_t resp;

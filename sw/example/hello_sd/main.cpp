@@ -195,6 +195,335 @@ SD_CODE neosd_card_init(sd_card_t* info)
     return NEOSD_OK;
 }
 
+
+void neosd_read_blocks_stop(size_t offset, size_t num)
+{
+    neosd_res_t resp;
+
+    // CMD18: READ_MULTIPLE_BLOCK, address 0
+    neosd_cmd_commit((SD_CMD_IDX)18, 0, NEOSD_RMODE_SHORT, NEOSD_DMODE_READ);
+    // neorv32_uart0_printf("=> Sent CMD18\n");
+
+
+    size_t blocks = 0;
+    uint32_t* rptr = &resp._raw[4];
+
+    // R1 and maybe data
+    while (true)
+    {
+        auto irq = NEOSD->IRQ_FLAG;
+        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        {
+            *(rptr--) = NEOSD->RESP;
+            //neorv32_uart0_printf("=> Got CMD response data\n");
+        }
+        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            //neorv32_uart0_printf("=> CMD response is done\n");
+            //NEOSD_DEBUG_R1(&resp.rshort);
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        {
+            auto data = NEOSD->DATA;
+            neorv32_uart0_printf("=> Data: %x\n", data);
+            //neorv32_uart0_printf(".");
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
+            //neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (irq & (1 << NEOSD_STAT_CRCOK)) ? "ok" : "fail");
+
+            if (++blocks == num)
+            {
+                // CMD12 STOP_TRANSMISSION
+                // neorv32_uart0_printf("=> Sending CMD12 STOP_TRANSMISSION\n");
+                neosd_cmd_commit((SD_CMD_IDX)12, 0, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE, true);
+            }
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+            //neorv32_uart0_printf("=> DAT response is done\n");
+            break;
+        }
+    }
+
+    // FIXME: Wait till data and CMD is idle
+    while (true)
+    {
+        auto irq = NEOSD->IRQ_FLAG;
+        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        {
+            *(rptr--) = NEOSD->RESP;
+            //neorv32_uart0_printf("=> Got CMD response data\n");
+        }
+        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            break;
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        {
+            auto data = NEOSD->DATA;
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+        }
+    }
+}
+
+bool neosd_read_blocks_23(size_t offset, size_t num)
+{
+    neosd_res_t resp;
+
+    // CMD23: SET_BLOCK_COUNT
+    neosd_cmd_commit((SD_CMD_IDX)23, num, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE);
+    if (!neosd_cmd_wait_res(&resp, NEOSD_CMD_TIMEOUT))
+    {
+        NEOSD_DEBUG_MSG("NEOSD: No response\n");
+        return false;
+    }
+
+
+    // CMD18: READ_MULTIPLE_BLOCK, address 0
+    neosd_cmd_commit((SD_CMD_IDX)18, 0, NEOSD_RMODE_SHORT, NEOSD_DMODE_READ);
+    // neorv32_uart0_printf("=> Sent CMD18\n");
+
+
+    size_t blocks = 0;
+    uint32_t* rptr = &resp._raw[4];
+
+    // R1 and maybe data
+    while (true)
+    {
+        auto irq = NEOSD->IRQ_FLAG;
+        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        {
+            *(rptr--) = NEOSD->RESP;
+            //neorv32_uart0_printf("=> Got CMD response data\n");
+        }
+        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            //neorv32_uart0_printf("=> CMD response is done\n");
+            //NEOSD_DEBUG_R1(&resp.rshort);
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        {
+            auto data = NEOSD->DATA;
+            //neorv32_uart0_printf(".");
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
+            //neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (irq & (1 << NEOSD_STAT_CRCOK)) ? "ok" : "fail");
+
+            if (++blocks == num)
+            {
+                // CMD12 STOP_TRANSMISSION
+                // neorv32_uart0_printf("=> Sending CMD12 STOP_TRANSMISSION\n");
+                NEOSD->CMD = (1 << NEOSD_CMD_LAST_BLOCK);
+            }
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+            //neorv32_uart0_printf("=> DAT response is done\n");
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool neosd_read_block(size_t offset)
+{
+    neosd_res_t resp;
+
+    // CMD17: READ_SINGLE_BLOCK
+    neosd_cmd_commit((SD_CMD_IDX)17, offset, NEOSD_RMODE_SHORT, NEOSD_DMODE_READ);
+    // neorv32_uart0_printf("=> Sent CMD17\n");
+
+    uint32_t* rptr = &resp._raw[4];
+
+    // R1 and maybe data
+    while (true)
+    {
+        auto irq = NEOSD->IRQ_FLAG;
+        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        {
+            *(rptr--) = NEOSD->RESP;
+            //neorv32_uart0_printf("=> Got CMD response data\n");
+        }
+        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            //neorv32_uart0_printf("=> CMD response is done\n");
+            //NEOSD_DEBUG_R1(&resp.rshort);
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        {
+            auto data = NEOSD->DATA;
+            //neorv32_uart0_printf(".");
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
+            //neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (irq & (1 << NEOSD_STAT_CRCOK)) ? "ok" : "fail");
+
+            NEOSD->CMD = (1 << NEOSD_CMD_LAST_BLOCK);
+        }
+        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        {
+            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+            //neorv32_uart0_printf("=> DAT response is done\n");
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool neosd_set_data_mode(bool d4mode)
+{
+    neosd_res_t resp;
+
+    // ACMD6 SET_BUS_WIDTH 10=4 bit, 00=1 bit
+    size_t arg = d4mode ? 0b10 : 0b00;
+    sd_status_t status;
+    if (neosd_acmd_commit((SD_CMD_IDX)6, arg, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE, &status, 1) != NEOSD_OK)
+        return false;
+
+    //NEOSD_DEBUG_MSG("NEOSD: Sent ACMD6\n");
+    if (!neosd_cmd_wait_res(&resp, NEOSD_CMD_TIMEOUT))
+    {
+        NEOSD_DEBUG_MSG("NEOSD: No response\n");
+        return false;
+    }
+
+    //NEOSD_DEBUG_MSG("NEOSD: Got response\n");
+    //NEOSD_DEBUG_R1(&resp.rshort);
+
+    if (d4mode)
+        NEOSD->CTRL |= (1 << NEOSD_CTRL_D4BIT);
+    else
+        NEOSD->CTRL &= ~(1 << NEOSD_CTRL_D4BIT);
+
+    return true;
+}
+
+
+int test_data_read()
+{
+    neosd_res_t resp;
+    // Now send CMD3. FIXME: USE RCA from CMD3 result
+    neosd_cmd_commit((SD_CMD_IDX)7, 1 << 16, NEOSD_RMODE_SHORT, /*NEOSD_DMODE_BUSY*/NEOSD_DMODE_NONE);
+
+    NEOSD_DEBUG_MSG("NEOSD: Sent CMD7\n");
+    if (!neosd_cmd_wait_res(&resp, NEOSD_CMD_TIMEOUT))
+    {
+        NEOSD_DEBUG_MSG("NEOSD: No response\n");
+        return NEOSD_INCOMPAT_CARD;
+    }
+
+    NEOSD_DEBUG_MSG("NEOSD: Got response\n");
+    NEOSD_DEBUG_R1(&resp.rshort);
+
+    // CMD42 to unlock, but not supported for now
+
+    // CMD6: Could select some things...
+
+    // CMD16 Set block length:
+    neosd_cmd_commit((SD_CMD_IDX)16, 512, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE);
+
+    NEOSD_DEBUG_MSG("NEOSD: Sent CMD16\n");
+    if (!neosd_cmd_wait_res(&resp, NEOSD_CMD_TIMEOUT))
+    {
+        NEOSD_DEBUG_MSG("NEOSD: No response\n");
+        return NEOSD_INCOMPAT_CARD;
+    }
+
+    NEOSD_DEBUG_MSG("NEOSD: Got response\n");
+    NEOSD_DEBUG_R1(&resp.rshort);
+
+    // Increase clock rate
+    NEOSD_DEBUG_MSG("NEOSD: Increasing Clock Rate\n");
+    uint32_t ctrl = NEOSD->CTRL;
+    ctrl &= ~(0b111 << NEOSD_CTRL_CDIV0);
+    NEOSD->CTRL = ctrl | (CLK_PRSC_2 << NEOSD_CTRL_CDIV0);
+
+
+
+
+
+
+
+
+
+
+    neorv32_uart0_printf("\n\nNEOSD: Testing Data Read. Press any key...\n");
+    neorv32_uart0_getc();
+
+    neorv32_uart0_printf("D1 Mode:\n");
+    neosd_set_data_mode(false);
+    neosd_read_blocks_stop(0, 1);
+
+    neorv32_uart0_printf("D4 Mode:\n");
+    neosd_set_data_mode(true);
+    neosd_read_blocks_stop(0, 1);
+
+    uint64_t dataSize = 32*1024*2*512*8*1000ULL;
+/*
+    uint64_t last = neosd_clint_time_get_ms();
+    neosd_read_blocks_stop(0, 32 * 1024 * 2);
+    uint64_t now = neosd_clint_time_get_ms();
+    neorv32_uart0_printf("=> With STOP_TRANSMISSION CMD: %u bit/s (%u ms)\n", (uint32_t)((dataSize)/(now-last)), (uint32_t)(now-last));
+
+    last = neosd_clint_time_get_ms();
+    neosd_read_blocks_23(0, 32 * 1024 * 2);
+    now = neosd_clint_time_get_ms();
+    neorv32_uart0_printf("=> With SET_BLOCK_COUNT CMD: %u bit/s (%u ms)\n", (uint32_t)((dataSize)/(now-last)), (uint32_t)(now-last));
+
+    last = neosd_clint_time_get_ms();
+    for (size_t i = 0; i < 32 * 1024 * 2; i++)
+        neosd_read_block(i*512);
+    now = neosd_clint_time_get_ms();
+    neorv32_uart0_printf("=> With individual reads: %u bit/s\n (%u ms)", (uint32_t)((dataSize)/(now-last)), (uint32_t)(now-last));
+
+
+
+
+    neorv32_uart0_printf("\n\nD4 Mode:\n");
+    neosd_set_data_mode(true);
+
+    last = neosd_clint_time_get_ms();
+    neosd_read_blocks_stop(0, 32 * 1024 * 2);
+    now = neosd_clint_time_get_ms();
+    neorv32_uart0_printf("=> With STOP_TRANSMISSION CMD: %u bit/s (%u ms)\n", (uint32_t)((dataSize)/(now-last)), (uint32_t)(now-last));
+
+
+    last = neosd_clint_time_get_ms();
+    neosd_read_blocks_23(0, 32 * 1024 * 2);
+    now = neosd_clint_time_get_ms();
+    neorv32_uart0_printf("=> With SET_BLOCK_COUNT CMD: %u bit/s (%u ms)\n", (uint32_t)((dataSize)/(now-last)), (uint32_t)(now-last));
+
+
+    last = neosd_clint_time_get_ms();
+    for (size_t i = 0; i < 32 * 1024 * 2; i++)
+        neosd_read_block(i*512);
+    now = neosd_clint_time_get_ms();
+    neorv32_uart0_printf("=> With individual reads: %u bit/s (%u ms)\n", (uint32_t)((dataSize)/(now-last)), (uint32_t)(now-last));
+    */
+
+    return 0;
+}
+
 int main()
 {
     neorv32_rte_setup();
@@ -216,6 +545,8 @@ int main()
             neorv32_uart0_printf("    Revision: %d.%d, Serial: %u, Date: %d/%d\n",
                 info.cid.prv >> 4, info.cid.prv & 0xF, info.cid.psn, info.cid.mdt & 0xF,
                 (info.cid.mdt >> 4) + 2000);
+
+            test_data_read();
             break;
         case NEOSD_NO_CARD:
             neorv32_uart0_printf("No SD Card found\n");
