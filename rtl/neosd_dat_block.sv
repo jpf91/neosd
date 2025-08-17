@@ -2,7 +2,6 @@ module neosd_dat_block (
     input clk_i,
     // Strobe to obtain the slow SD clock
     input clkstrb_i,
-    input rstn_i,
 
     // Control signals:
     // Read or write mode
@@ -10,11 +9,17 @@ module neosd_dat_block (
     // 4 wire mode
     input ctrl_d4_i,
     // Rotate the registers in 1 bit mode, so input / output is muxed to different regs
-    input ctrl_rot_reg,
+    input ctrl_rot_reg_i,
     // Output '0' (0), '1' (1), register data (2) or crc (3). Independent of shift_s_i
     input[1:0] ctrl_omux_i,
     // Make CRC generators output CRC
     input ctrl_output_crc_i,
+    // Reset CRC generators
+    input ctrl_rstn_crc_i,
+    // Clear data registers
+    input ctrl_rstn_reg_i,
+    // 
+    input ctrl_rstn_rot_i,
 
     input sd_dat0_i,
     input sd_dat1_i,
@@ -52,11 +57,11 @@ module neosd_dat_block (
 
     // In read mode: if 1 pin mode, reg should read only read every 4th element
     logic[1:0] reg_active_n;
-    always @(posedge clk_i or negedge rstn_i) begin
-        if (rstn_i == 1'b0) begin
+    always @(posedge clk_i or negedge ctrl_rstn_rot_i) begin
+        if (ctrl_rstn_rot_i == 1'b0) begin
             reg_active_n <= 2'd3;
         end else begin
-            if (clkstrb_i == 1'b1 && shift_s_i == 1'b1 && ctrl_rot_reg == 1'b1) begin
+            if (clkstrb_i == 1'b1 && shift_s_i == 1'b1 && ctrl_rot_reg_i == 1'b1) begin
                 reg_active_n <= reg_active_n - 1;
             end
         end
@@ -83,7 +88,7 @@ module neosd_dat_block (
             neosd_dat_reg regi (
                 .clk_i(clk_i),
                 .clkstrb_i(clkstrb_i),
-                .rstn_i(rstn_i),
+                .rstn_i(ctrl_rstn_reg_i),
                 .data_p_i(reg_data_p_i[i]),
                 .load_p_i(load_p_i),
                 .data_p_o(reg_data_p_o[i]),
@@ -94,7 +99,7 @@ module neosd_dat_block (
             neosd_dat_crc crci (
                 .clk_i(clk_i),
                 .clkstrb_i(clkstrb_i),
-                .rstn_i(rstn_i),
+                .rstn_i(ctrl_rstn_crc_i),
                 .data_s_i(crc_data_s_i[i]),
                 .shift_s_i(shift_s_i),
                 .output_s_i(ctrl_output_crc_i),

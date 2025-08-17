@@ -71,6 +71,9 @@ module neosd_cmd_fsm (
     FSM_STATE cmd_fsm_curr;
     FSM_STATE cmd_fsm_next;
 
+    STATE dbg_state;
+    assign dbg_state = cmd_fsm_curr.state;
+
     assign status_idle_o = cmd_fsm_curr.state == STATE_IDLE;
     assign status_resp_o = cmd_fsm_curr.state == STATE_REGOUT;
     assign resp_data_o = cmd_reg_dout;
@@ -102,53 +105,60 @@ module neosd_cmd_fsm (
                         end
                     end
                     STATE_WRITE: begin
-                        if (cmd_fsm_curr.bit_counter == 47) begin
-                            cmd_fsm_next.bit_counter = 0;
-                            cmd_fsm_next.cmd_oe = 1'b0;
+                        // Only count, if not stalled
+                        if (sd_clk_en_i == 1'b1) begin
+                            if (cmd_fsm_curr.bit_counter == 47) begin
+                                cmd_fsm_next.bit_counter = 0;
+                                cmd_fsm_next.cmd_oe = 1'b0;
 
-                            // In read commands, data can arrive starting 2 clocks from last CMD bit
-                            if (ctrl_dmode_i == DATA_R) begin
-                                cmd_fsm_next.start_dat = 1;
+                                // In read commands, data can arrive starting 2 clocks from last CMD bit
+                                if (ctrl_dmode_i == DATA_R) begin
+                                    cmd_fsm_next.start_dat = 1;
+                                end
+
+                                case (ctrl_rmode_i)
+                                    RESP_NONE: begin
+                                        cmd_fsm_next.state = STATE_TAIL;
+                                        cmd_fsm_next.bit_counter = 0;
+                                    end
+                                    RESP_SHORT: begin
+                                        cmd_fsm_next.word_counter = 2;
+                                        // First register result should only read 16 bit, but 2 are read in
+                                        // WAIT_RESP state, which does not advance counter
+                                        cmd_fsm_next.bit_counter = 19;
+                                        cmd_fsm_next.state = STATE_WAIT_RESP;
+                                    end
+                                    RESP_LONG: begin
+                                        cmd_fsm_next.word_counter = 5;
+                                        // First register result should only read 8 bit, but 2 are read in
+                                        // WAIT_RESP state, which does not advance counter
+                                        cmd_fsm_next.bit_counter = 27;
+                                        cmd_fsm_next.state = STATE_WAIT_RESP;
+                                    end
+                                endcase
+                            end else begin
+                                cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
                             end
-
-                            case (ctrl_rmode_i)
-                                RESP_NONE: begin
-                                    cmd_fsm_next.state = STATE_TAIL;
-                                    cmd_fsm_next.bit_counter = 0;
-                                end
-                                RESP_SHORT: begin
-                                    cmd_fsm_next.word_counter = 2;
-                                    // First register result should only read 16 bit, but 2 are read in
-                                    // WAIT_RESP state, which does not advance counter
-                                    cmd_fsm_next.bit_counter = 19;
-                                    cmd_fsm_next.state = STATE_WAIT_RESP;
-                                end
-                                RESP_LONG: begin
-                                    cmd_fsm_next.word_counter = 5;
-                                    // First register result should only read 8 bit, but 2 are read in
-                                    // WAIT_RESP state, which does not advance counter
-                                    cmd_fsm_next.bit_counter = 27;
-                                    cmd_fsm_next.state = STATE_WAIT_RESP;
-                                end
-                            endcase
-                        end else begin
-                            cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
                         end
                     end
                     STATE_WAIT_RESP: begin
                         // Wait for response begin marker 00
+                        // Goes via the shift register, so only clocks when not stalled
                         if (cmd_reg_dout[1:0] == 2'b00) begin
                             cmd_fsm_next.state = STATE_READ_RESP;
                         end
                     end
                     STATE_READ_RESP: begin
-                        if (cmd_fsm_curr.bit_counter == 31) begin
-                            cmd_fsm_next.bit_counter = 0;
-                            cmd_fsm_next.word_counter = cmd_fsm_curr.word_counter - 1;
-                            cmd_fsm_next.clk_stall = 1;
-                            cmd_fsm_next.state = STATE_REGOUT;
-                        end else begin
-                            cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
+                        // Only count, if not stalled
+                        if (sd_clk_en_i == 1'b1) begin
+                            if (cmd_fsm_curr.bit_counter == 31) begin
+                                cmd_fsm_next.bit_counter = 0;
+                                cmd_fsm_next.word_counter = cmd_fsm_curr.word_counter - 1;
+                                cmd_fsm_next.clk_stall = 1;
+                                cmd_fsm_next.state = STATE_REGOUT;
+                            end else begin
+                                cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
+                            end
                         end
                     end
                     STATE_REGOUT: begin
@@ -167,11 +177,14 @@ module neosd_cmd_fsm (
                         end
                     end
                     STATE_TAIL: begin
-                        if (cmd_fsm_curr.bit_counter == 7) begin
-                            cmd_fsm_next.clk_req = 1'b0;
-                            cmd_fsm_next.state = STATE_IDLE;
-                        end else begin
-                            cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
+                        // Only count, if not stalled
+                        if (sd_clk_en_i == 1'b1) begin
+                            if (cmd_fsm_curr.bit_counter == 7) begin
+                                cmd_fsm_next.clk_req = 1'b0;
+                                cmd_fsm_next.state = STATE_IDLE;
+                            end else begin
+                                cmd_fsm_next.bit_counter = cmd_fsm_curr.bit_counter + 1;
+                            end
                         end
                     end
                 endcase

@@ -20,11 +20,21 @@ module neosd (
     input sd_cmd_i,
     output sd_cmd_oe,
     output sd_dat0_o,
+    output sd_dat1_o,
+    output sd_dat2_o,
+    output sd_dat3_o,
     input sd_dat0_i,
-    output sd_dat0_oe
+    input sd_dat1_i,
+    input sd_dat2_i,
+    input sd_dat3_i,
+    output sd_dat0_oe,
+    output sd_dat1_oe,
+    output sd_dat2_oe,
+    output sd_dat3_oe
 );
     // Control and status register
     struct packed {
+        logic D4BIT;
         logic[2:0] CDIV;
         logic ABRT;
         logic RST;
@@ -35,6 +45,7 @@ module neosd (
     logic IRQ_FLAG_CMD_RESP;
     logic IRQ_FLAG_CMD_DONE;
     logic IRQ_FLAG_DAT_DATA;
+    logic IRQ_FLAG_BLOCK_DONE;
     logic IRQ_FLAG_DAT_DONE;
 
     // Command register
@@ -54,6 +65,7 @@ module neosd (
     logic status_idle_cmd_last, status_resp_cmd_last;
     logic status_idle_dat, status_data_dat;
     logic status_idle_dat_last, status_data_dat_last;
+    logic status_block_done, status_crc_ok;
 
 
     // IRQ_FLAG_DAT_DATA gets cleared on read and write, so it get's its own block
@@ -80,6 +92,7 @@ module neosd (
         if (rstn_i == 1'b0) begin
             NEOSD_CTRL_REG <= '0;
             IRQ_FLAG_CMD_DONE <= '0;
+            IRQ_FLAG_BLOCK_DONE <= '0;
             IRQ_FLAG_DAT_DONE <= '0;
             // NEOSD_CMDARG_REG: Don't initialize
             NEOSD_CMD_REG_BASE <= '0;
@@ -91,6 +104,8 @@ module neosd (
             // Auto-reset after CMD FSM read those
             if (clkstrb == 1'b1) begin
                 NEOSD_CMD_REG_BASE.COMMIT <= 1'b0;
+                if (status_block_done == 1'b1)
+                    IRQ_FLAG_BLOCK_DONE <= 1'b1;
             end
 
             // CMD done IRQ is edge triggered
@@ -113,6 +128,7 @@ module neosd (
                     8'h08: begin
                         IRQ_FLAG_CMD_DONE <= wb_dat_i[0];
                         IRQ_FLAG_DAT_DONE <= wb_dat_i[2];
+                        IRQ_FLAG_BLOCK_DONE <= wb_dat_i[4];
                     end
                     //8'h0C:
                     //    NEOSD_IRQ_MASK_REG <= wb_dat_i[$bits(NEOSD_IRQ_MASK_REG):0];
@@ -158,7 +174,7 @@ module neosd (
 
                     end
                     8'h08:
-                        wb_dat_o[3:0] <= {IRQ_FLAG_DAT_DATA, IRQ_FLAG_DAT_DONE, IRQ_FLAG_CMD_RESP, IRQ_FLAG_CMD_DONE};
+                        wb_dat_o[5:0] <= {status_crc_ok, IRQ_FLAG_BLOCK_DONE, IRQ_FLAG_DAT_DATA, IRQ_FLAG_DAT_DONE, IRQ_FLAG_CMD_RESP, IRQ_FLAG_CMD_DONE};
                     //8'h0C: 
                     //    wb_dat_o[$bits(NEOSD_IRQ_MASK_REG):0] <= NEOSD_IRQ_MASK_REG;
                     8'h10: begin
@@ -210,17 +226,29 @@ module neosd (
 
         .status_idle_o(status_idle_dat),
         .status_data_o(status_data_dat),
+        .status_block_done_o(status_block_done),
+        .status_crc_ok_o(status_crc_ok),
         .ctrl_start_i(dat_start),
         .ctrl_dat_ack_i(~IRQ_FLAG_DAT_DATA),
         .ctrl_last_block_i(NEOSD_CMD_REG_BASE.LAST_BLOCK),
         .ctrl_dmode_i(NEOSD_CMD_REG_BASE.DMODE),
+        .ctrl_d4_i(NEOSD_CTRL_REG.D4BIT),
 
         .sd_clk_req_o(sd_clk_req_dat),
         .sd_clk_stall_o(sd_clk_stall_dat),
         .sd_clk_en_i(sd_clk_en),
-        .sd_dat_oe(sd_dat0_oe),
-        .sd_dat_o(sd_dat0_o),
-        .sd_dat_i(sd_dat0_i)
+        .sd_dat0_oe(sd_dat0_oe),
+        .sd_dat1_oe(sd_dat1_oe),
+        .sd_dat2_oe(sd_dat2_oe),
+        .sd_dat3_oe(sd_dat3_oe),
+        .sd_dat0_o(sd_dat0_o),
+        .sd_dat1_o(sd_dat1_o),
+        .sd_dat2_o(sd_dat2_o),
+        .sd_dat3_o(sd_dat3_o),
+        .sd_dat0_i(sd_dat0_i),
+        .sd_dat1_i(sd_dat1_i),
+        .sd_dat2_i(sd_dat2_i),
+        .sd_dat3_i(sd_dat3_i)
     );
 
     // Forward register accesses to neosd_dat_fsm

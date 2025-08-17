@@ -1,0 +1,75 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Wed Jul 30 06:11:41 2025
+[*]
+[dumpfile] "/home/jpfau/Dokumente/Projekte/FPGA/tang20k-neorv32/lib/neosd/test/tb_data_block.vcd"
+[dumpfile_mtime] "Mon Jul 28 20:52:50 2025"
+[dumpfile_size] 1212359
+[savefile] "/home/jpfau/Dokumente/Projekte/FPGA/tang20k-neorv32/lib/neosd/test/sim.gtkw"
+[timestart] 0
+[size] 1920 1001
+[pos] -1 -1
+*-17.100000 169674400 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_dat_block.
+[treeopen] tb_dat_block.u_neosd_dat_block.
+[treeopen] tb_dat_block.u_neosd_dat_block.regs[0].
+[treeopen] tb_dat_block.u_neosd_dat_block.regs[1].
+[treeopen] tb_dat_block.u_neosd_dat_block.regs[2].
+[treeopen] tb_dat_block.u_neosd_dat_block.regs[3].
+[sst_width] 297
+[signals_width] 293
+[sst_expanded] 1
+[sst_vpaned_height] 298
+@28
+tb_dat_block.rstn_i
+tb_dat_block.clk_i
+tb_dat_block.clkstrb_i
+tb_dat_block.ctrl_rnw_i
+tb_dat_block.ctrl_d4_i
+tb_dat_block.ctrl_omux_i[1:0]
+tb_dat_block.u_neosd_dat_block.ctrl_output_crc_i
+tb_dat_block.crc_nonzero_o
+tb_dat_block.sd_dat_oe
+tb_dat_block.sd_dat0_o
+tb_dat_block.sd_dat1_o
+tb_dat_block.sd_dat2_o
+tb_dat_block.sd_dat3_o
+@22
+tb_dat_block.data_p_o[31:0]
+tb_dat_block.u_neosd_dat_block.data_p_i[31:0]
+@28
+tb_dat_block.u_neosd_dat_block.load_p_i
+tb_dat_block.sd_dat0_i
+tb_dat_block.sd_dat1_i
+tb_dat_block.sd_dat2_i
+tb_dat_block.sd_dat3_i
+tb_dat_block.shift_s_i
+tb_dat_block.u_neosd_dat_block.regs[0].regi.data_p_o[7:0]
+tb_dat_block.u_neosd_dat_block.regs[0].regi.shift_s_i
+tb_dat_block.u_neosd_dat_block.regs[1].regi.data_p_o[7:0]
+tb_dat_block.u_neosd_dat_block.regs[1].regi.shift_s_i
+tb_dat_block.u_neosd_dat_block.regs[2].regi.data_p_o[7:0]
+tb_dat_block.u_neosd_dat_block.regs[2].regi.shift_s_i
+tb_dat_block.u_neosd_dat_block.regs[3].regi.data_p_o[7:0]
+tb_dat_block.u_neosd_dat_block.regs[3].regi.shift_s_i
+tb_dat_block.u_neosd_dat_block.regs[3].regi.data_s_o
+tb_dat_block.u_neosd_dat_block.regs[0].crci.data_s_i
+@22
+tb_dat_block.u_neosd_dat_block.regs[0].crci.sreg[15:0]
+@28
+tb_dat_block.u_neosd_dat_block.regs[0].crci.shift_s_i
+tb_dat_block.u_neosd_dat_block.regs[0].crci.nonzero_o
+@24
+tb_dat_block.u_neosd_dat_block.reg_active_n[1:0]
+@28
+tb_dat_block.u_neosd_dat_block.mux_data_s_o[3:0]
+tb_dat_block.u_neosd_dat_block.ctrl_omux_i[1:0]
+tb_dat_block.u_neosd_dat_block.reg_data_s_o[3:0]
+@29
+tb_dat_block.u_neosd_dat_block.crc_data_s_o[3:0]
+@22
+tb_dat_block.u_neosd_dat_block.regs[0].crci.sreg[15:0]
+@28
+tb_dat_block.u_neosd_dat_block.regs[0].crci.data_s_o
+[pattern_trace] 1
+[pattern_trace] 0

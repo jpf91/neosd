@@ -25,10 +25,10 @@ COMPILE_ARGS 		+= -I$(SRC_DIR)
 VERILOG_SOURCES += $(PWD)/tb.v
 VERILOG_SOURCES += $(PWD)/tb_crc.v
 VERILOG_SOURCES += $(PWD)/tb_dat_block.v
-TOPLEVEL = tb_dat_block
+TOPLEVEL = tb
 
 # MODULE is the basename of the Python test file
-MODULE = test_dat_block
+MODULE = test
 
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim

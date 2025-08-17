@@ -1,0 +1,96 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Tue Aug  5 18:51:35 2025
+[*]
+[dumpfile] "/home/jpfau/Dokumente/Projekte/FPGA/tang20k-neorv32/lib/neosd/test/tb.vcd"
+[dumpfile_mtime] "Tue Aug  5 18:50:47 2025"
+[dumpfile_size] 2263739
+[savefile] "/home/jpfau/Dokumente/Projekte/FPGA/tang20k-neorv32/lib/neosd/test/tb.gtkw"
+[timestart] 203350000
+[size] 1920 1001
+[pos] -1 -1
+*-21.000000 205730000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb.
+[treeopen] tb.dut.
+[treeopen] tb.dut.dat_fsm.block.regs[0].
+[sst_width] 297
+[signals_width] 459
+[sst_expanded] 1
+[sst_vpaned_height] 298
+@28
+tb.clk
+tb.rstn
+@200
+-Wishbone
+@28
+tb.wb_stb_i
+@22
+tb.wb_adr_i[31:0]
+tb.wb_dat_i[31:0]
+tb.wb_dat_o[31:0]
+@28
+tb.wb_we_i
+tb.wb_ack_o
+@200
+-SD Signals
+@28
+tb.sd_clk_o
+tb.sd_cmd_oe
+tb.sd_cmd_i
+tb.sd_cmd_o
+tb.sd_dat0_oe
+tb.sd_dat0_i
+tb.sd_dat0_o
+@200
+-Internal Signals: Top
+@28
+tb.dut.IRQ_FLAG_CMD_RESP
+tb.dut.IRQ_FLAG_CMD_DONE
+tb.dut.dat_start
+@200
+-Internal: CMD FSM
+@28
+tb.dut.cmd_fsm.dbg_state[2:0]
+@200
+-Internal: Dat FSM
+@28
+tb.dut.dat_fsm.clkstrb_i
+@29
+tb.dut.dat_fsm.sd_clk_en_i
+@28
+tb.dut.dat_fsm.sd_clk_req_o
+tb.dut.dat_fsm.sd_clk_stall_o
+@24
+tb.dut.dat_fsm.dbg_state[3:0]
+@22
+tb.dut.dat_fsm.dbg_bit_counter[5:0]
+@24
+tb.dut.dat_fsm.dbg_word_counter[8:0]
+@28
+tb.dut.dat_fsm.status_block_done_o
+tb.dut.dat_fsm.status_crc_ok_o
+tb.dut.dat_fsm.status_data_o
+tb.dut.dat_fsm.status_idle_o
+tb.dut.dat_fsm.block_shift_s
+tb.dut.dat_fsm.block_data_po[31:0]
+tb.dut.dat_fsm.block.regs[0].regi.clk_i
+tb.dut.dat_fsm.block.regs[0].regi.clkstrb_i
+tb.dut.dat_fsm.block.regs[0].crci.nonzero_o
+tb.dut.dat_fsm.block.regs[0].crci.rstn_i
+tb.dut.dat_fsm.block.regs[0].crci.data_s_i
+tb.dut.dat_fsm.block.regs[0].crci.shift_s_i
+@22
+tb.dut.dat_fsm.block.regs[0].crci.sreg[15:0]
+@28
+tb.dut.dat_fsm.block.regs[0].regi.rstn_i
+@200
+-SDCLK Generator
+@28
+tb.dut.sd_clk_req_cmd
+tb.dut.sd_clk_req_dat
+tb.dut.sd_clk_stall_cmd
+tb.dut.sd_clk_stall_dat
+tb.dut.sd_clk_en
+tb.dut.sd_clk_o
+[pattern_trace] 1
+[pattern_trace] 0

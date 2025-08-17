@@ -41,6 +41,9 @@ See below for a detailed TODO list.
 - [ ] FreeRTOS Wrapper
 
 
+### TODO:
+- [x] Make CRC flag sticky: Invert meaning to CRC_ERR. Failure 1 sticks until writing 0
+
 ### Testing
 
 - [x] Basic CocoTB Simulation
