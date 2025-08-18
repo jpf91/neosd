@@ -48,6 +48,7 @@ module neosd (
     logic IRQ_FLAG_DAT_DATA;
     logic IRQ_FLAG_BLOCK_DONE;
     logic IRQ_FLAG_DAT_DONE;
+    logic STAT_CRC_ERR;
 
     // Command register
     struct packed {
@@ -105,8 +106,10 @@ module neosd (
             // Auto-reset after CMD FSM read those
             if (clkstrb == 1'b1) begin
                 NEOSD_CMD_REG_BASE.COMMIT <= 1'b0;
-                if (status_block_done == 1'b1)
+                if (status_block_done == 1'b1) begin
                     IRQ_FLAG_BLOCK_DONE <= 1'b1;
+                    STAT_CRC_ERR <= STATUS_CRC_ERR | !status_crc_ok;
+                end
             end
 
             // CMD done IRQ is edge triggered
@@ -125,6 +128,7 @@ module neosd (
                         NEOSD_CTRL_REG <= wb_dat_i[$bits(NEOSD_CTRL_REG):0];
                     8'h04: begin
                         // FIXME: REMOVE extra stat reg
+                        STAT_CRC_ERR <= wb_dat_i[2];
                     end
                     8'h08: begin
                         IRQ_FLAG_CMD_DONE <= wb_dat_i[0];
@@ -172,7 +176,7 @@ module neosd (
                     8'h00:
                         wb_dat_o[$bits(NEOSD_CTRL_REG):0] <= NEOSD_CTRL_REG;
                     8'h04:
-                        wb_dat_o[2:0] <= {status_crc_ok, status_idle_dat, status_idle_cmd};
+                        wb_dat_o[2:0] <= {STAT_CRC_ERR, status_idle_dat, status_idle_cmd};
                     8'h08:
                         wb_dat_o[5:0] <= {status_crc_ok, IRQ_FLAG_BLOCK_DONE, IRQ_FLAG_DAT_DATA, IRQ_FLAG_DAT_DONE, IRQ_FLAG_CMD_RESP, IRQ_FLAG_CMD_DONE};
                     //8'h0C: 
