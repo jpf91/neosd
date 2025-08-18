@@ -8,7 +8,7 @@ module neosd_clk (
     output reg clkstrb_o,
 
     // If we want to have an SD card clock active
-    input[1:0] sd_clk_req_i,
+    input[2:0] sd_clk_req_i,
     // Whether the clock needs to stall
     input[1:0] sd_clk_stall_i,
     // If the clock actually is active and not stalled
@@ -17,8 +17,8 @@ module neosd_clk (
     output reg sd_clk_o
 );
     // Clock can be needed and stalled by both CMD and DATA FSMs
-    assign sd_clk_en_o = (sd_clk_req_i[1] || sd_clk_req_i[0]) // requested
-        && !(sd_clk_stall_i[1] || sd_clk_stall_i[0]); // and not stalled
+    assign sd_clk_en_o = (|sd_clk_req_i) // requested
+        && !(|sd_clk_stall_i); // and not stalled
 
     logic sd_clk_div;
     logic sd_clk_div_last;

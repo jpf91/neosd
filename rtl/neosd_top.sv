@@ -34,6 +34,7 @@ module neosd (
 );
     // Control and status register
     struct packed {
+        logic IDLE_CLK;
         logic D4BIT;
         logic[2:0] CDIV;
         logic ABRT;
@@ -333,7 +334,7 @@ module neosd (
         .clkgen_i(clkgen_i),
         .sd_clksel_i(NEOSD_CTRL_REG.CDIV),
         .clkstrb_o(clkstrb),
-        .sd_clk_req_i({sd_clk_req_cmd, sd_clk_req_dat}),
+        .sd_clk_req_i({sd_clk_req_cmd, sd_clk_req_dat, NEOSD_CTRL_REG.IDLE_CLK}),
         .sd_clk_stall_i({sd_clk_stall_cmd, sd_clk_stall_dat}),
         .sd_clk_en_o(sd_clk_en),
         .sd_clk_o(sd_clk_o)

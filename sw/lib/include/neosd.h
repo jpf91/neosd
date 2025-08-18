@@ -54,7 +54,8 @@ extern "C" {
         NEOSD_CTRL_CDIV0         =  3, // actually PRSCL
         NEOSD_CTRL_CDIV1         =  4,
         NEOSD_CTRL_CDIV2         =  5,
-        NEOSD_CTRL_D4BIT         =  6
+        NEOSD_CTRL_D4BIT         =  6,
+        NEOSD_CTRL_IDLE_CLK      =  7,
     };
 
     enum NEOSD_IRQ_enum {
@@ -251,6 +252,7 @@ extern "C" {
     void neosd_disable();
     void neosd_enable();
     void neosd_begin_reset();
+    void neosd_set_idle_clk(bool active);
     int neosd_busy();
 
     // Command functions

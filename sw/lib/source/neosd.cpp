@@ -148,6 +148,17 @@ void neosd_enable()
 }
 
 /**********************************************************************//**
+ * Whether to keep clock active in idle state.
+ **************************************************************************/
+void neosd_set_idle_clk(bool active)
+{
+    if (active)
+        NEOSD->CTRL |= (1 << NEOSD_CTRL_IDLE_CLK);
+    else
+        NEOSD->CTRL &= ~(1 << NEOSD_CTRL_IDLE_CLK);
+}
+
+/**********************************************************************//**
  * Reset the neosd controller.
  *
  * @note This does not change / reset any register configuration!
