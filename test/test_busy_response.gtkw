@@ -1,0 +1,42 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Tue Aug 19 09:37:29 2025
+[*]
+[dumpfile] "/home/jpfau/Dokumente/Projekte/FPGA/tang20k-neorv32/lib/neosd/test/tb.vcd"
+[dumpfile_mtime] "Tue Aug 19 09:35:16 2025"
+[dumpfile_size] 113686
+[savefile] "/home/jpfau/Dokumente/Projekte/FPGA/tang20k-neorv32/lib/neosd/test/test_busy_response.gtkw"
+[timestart] 9995900
+[size] 1920 1001
+[pos] -1 -1
+*-17.000000 9897400 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb.
+[treeopen] tb.dut.
+[treeopen] tb.dut.dat_fsm.
+[sst_width] 297
+[signals_width] 479
+[sst_expanded] 1
+[sst_vpaned_height] 298
+@28
+tb.clk
+tb.rstn
+tb.sd_clk_o
+tb.sd_cmd_oe
+tb.sd_cmd_i
+tb.sd_cmd_o
+tb.sd_dat0_i
+tb.wb_cyc_i
+tb.wb_stb_i
+tb.wb_we_i
+@22
+tb.wb_adr_i[31:0]
+@28
+tb.wb_dat_i[31:0]
+tb.wb_dat_o[31:0]
+tb.wb_ack_o
+tb.dut.status_idle_cmd
+tb.dut.status_idle_dat
+@23
+tb.dut.dat_fsm.dbg_state[3:0]
+[pattern_trace] 1
+[pattern_trace] 0

@@ -24,14 +24,16 @@ See below for a detailed TODO list.
 - [x] Stalling the SD Card Clock When Waiting for CPU to Read Data
 - [x] Clock Arbiter, so Both Command and Data FSM Can Stall Clock
 - [x] Continuous Clocking During Idle for ACMD41
-- [ ] Busy Response (R1b) Support
+- [x] Busy Response (R1b) Support
 - [x] Single Data Block Read
 - [ ] Single Data Block Write
 - [x] Multiple Data Block Read (includes proper Stop CMD Timing)
 - [ ] Multiple Data Block Write (includes proper Stop CMD Timing)
 - [x] 1-Wire Data Transport
 - [x] 4-Wire Data Transport
-
+- [ ] Interrupt Support
+- [ ] NEORV-like Clock Divider
+- [ ] Independent Data Interrupt Output for DMA
 ### Driver
 
 - [x] Low-Level Definitions

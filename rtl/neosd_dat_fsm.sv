@@ -87,7 +87,7 @@ module neosd_dat_fsm (
     );
 
     typedef enum logic[3:0] {STATE_IDLE, STATE_WAIT_BLOCK, STATE_READ_BLOCK, STATE_REGOUT, STATE_READ_CRC, STATE_READ_FINISH,
-        STATE_WRITE_BLOCK, STATE_REGIN, STATE_WRITE_CRC, STATE_WAIT_BUSY, STATE_TAIL} STATE;
+        STATE_WRITE_BLOCK, STATE_REGIN, STATE_WRITE_CRC, STATE_TAIL, STATE_WAIT_BUSY} STATE;
 
     typedef struct packed {
         STATE state;
@@ -154,7 +154,6 @@ module neosd_dat_fsm (
                             case (ctrl_dmode_i)
                                 DATA_NONE: begin
                                     // Do nothing
-                                    dat_fsm_next.state = STATE_IDLE;
                                 end
                                 DATA_R: begin
                                     dat_fsm_next.clk_req = 1'b1;
@@ -164,12 +163,15 @@ module neosd_dat_fsm (
                                     dat_fsm_next.block_ctrl_rstn_rot = 1'b1;
                                     dat_fsm_next.state = STATE_WAIT_BLOCK;
                                 end
+                                DATA_BUSY: begin
+                                    dat_fsm_next.clk_req = 1'b1;
+                                    dat_fsm_next.state = STATE_WAIT_BUSY;
+                                end
                             endcase
                         end
                     end
                     STATE_WAIT_BLOCK: begin
-                        // Wait for block begin marker 0. This goes via the shift register
-                        // so it only clocks if the SD clock is there
+                        // Wait for block begin marker 0
                         if ((sd_clk_en_i == 1'b1) && (sd_dat0_i == 1'b0)) begin
                             dat_fsm_next.state = STATE_READ_BLOCK;
                             dat_fsm_next.block_ctrl_rstn_crc = 1'b1;
@@ -237,6 +239,13 @@ module neosd_dat_fsm (
                             end else begin
                                 dat_fsm_next.bit_counter = dat_fsm_curr.bit_counter + 1;
                             end
+                        end
+                    end
+                    STATE_WAIT_BUSY: begin
+                        // Wait for line high
+                        if ((sd_clk_en_i == 1'b1) && (sd_dat0_i == 1'b1)) begin
+                            dat_fsm_next.state = STATE_TAIL;
+                            dat_fsm_next.bit_counter = 0;
                         end
                     end
                     default: begin

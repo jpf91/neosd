@@ -242,7 +242,7 @@ async def test_fsm_rst_impl(dut, idleClk):
     isIdle = False
     for i in range(20):
         result = await wbs.send_cycle([WBOp(0x4)])
-        if (result[0].datrd & 0b11 == 0b11):
+        if (result[0].datrd & 0b11 == 0b00):
             isIdle = True
             break
 
@@ -262,3 +262,40 @@ async def test_fsm_rst(dut):
 @cocotb.test()
 async def test_fsm_rst_idleclk(dut):
     await test_fsm_rst_impl(dut, True)
+
+@cocotb.test()
+async def test_busy_response(dut):
+    wbs = await init_test(dut)
+    await configure_peripheral(dut, wbs, False)
+
+    # CMDArg 0x10, IDX=0b101010 CRC=1110011 SHORT Response, DATA BUSY, COMMIT
+    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b00101010_01110011_00_01_01_0_1)])
+    await ClockCycles(dut.clk, 64*8)
+
+    # Emulate busy going high
+    dut.sd_dat0_i.value = 0
+
+    # Read the response
+    dut.sd_cmd_i.value = 0
+    await ClockCycles(dut.clk, 16*8)
+    # Read flag reg, then read rdata reg
+    await wbs.send_cycle([WBOp(0x8), WBOp(0x18)])
+
+    await ClockCycles(dut.clk, 34*8)
+    # Read flag reg, then read rdata reg
+    await wbs.send_cycle([WBOp(0x8), WBOp(0x18)])
+
+    dut.sd_cmd_i.value = 1
+    await ClockCycles(dut.sd_clk_o, 8)
+
+    # Data FSM should be busy
+    result = await wbs.send_cycle([WBOp(0x4)])
+    assert((result[0].datrd & 0b10) != 0)
+
+    # Emulate busy going low
+    dut.sd_dat0_i.value = 1
+    await ClockCycles(dut.clk, 8*8)
+
+    # Should be in idle state again
+    result = await wbs.send_cycle([WBOp(0x4)])
+    assert((result[0].datrd & 0b11) == 0)

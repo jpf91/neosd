@@ -168,7 +168,7 @@ module neosd_cmd_fsm (
                             cmd_fsm_next.state = STATE_READ_RESP;
                             if (cmd_fsm_next.word_counter == 0) begin
                                 // Write blocks at earliest 2 clocks from last response bit
-                                // We just assume same ting for busy (R1b), this is not specified
+                                // We just assume same thing for busy (R1b), this is not specified?
                                 if (ctrl_dmode_i == DATA_W || ctrl_dmode_i == DATA_BUSY) begin
                                     cmd_fsm_next.start_dat = 1;
                                 end
