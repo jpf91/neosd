@@ -177,7 +177,7 @@ module neosd (
                     8'h00:
                         wb_dat_o[$bits(NEOSD_CTRL_REG):0] <= NEOSD_CTRL_REG;
                     8'h04:
-                        wb_dat_o[2:0] <= {STAT_CRC_ERR, status_idle_dat, status_idle_cmd};
+                        wb_dat_o[2:0] <= {STAT_CRC_ERR, ~status_idle_dat, ~status_idle_cmd};
                     8'h08:
                         wb_dat_o[5:0] <= {status_crc_ok, IRQ_FLAG_BLOCK_DONE, IRQ_FLAG_DAT_DATA, IRQ_FLAG_DAT_DONE, IRQ_FLAG_CMD_RESP, IRQ_FLAG_CMD_DONE};
                     //8'h0C: 
