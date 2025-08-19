@@ -167,6 +167,16 @@ void neosd_set_idle_clk(bool active)
 void neosd_begin_reset()
 {
     NEOSD->CTRL |= (1 << NEOSD_CTRL_RST);
+}
+
+/**********************************************************************//**
+ * Reset the neosd controller.
+ *
+ * @note This does not change / reset any register configuration!
+ * @note You may want to wait on neosd_busy() to check when reset is done.
+ **************************************************************************/
+void neosd_end_reset()
+{
     NEOSD->CTRL &= (1 << NEOSD_CTRL_RST);
 }
 
@@ -184,8 +194,7 @@ void neosd_begin_reset()
  **************************************************************************/
 int neosd_busy()
 {
-    // FIXME: Implement FSM busy bits in HW
-    return 0;
+    return NEOSD->STAT & ((1 << NEOSD_STAT_IDLE_CMD) | (1 << NEOSD_STAT_IDLE_DAT));
 }
 
 /**********************************************************************//**

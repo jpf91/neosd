@@ -67,7 +67,9 @@ extern "C" {
     };
 
     enum NEOSD_STAT_enum {
-        NEOSD_STAT_CRCOK         =  5,
+        NEOSD_STAT_IDLE_CMD       =  0,
+        NEOSD_STAT_IDLE_DAT       =  1,
+        NEOSD_STAT_CRCERR         =  2,
     };
 
     enum NEOSD_CMD_enum {
@@ -252,6 +254,7 @@ extern "C" {
     void neosd_disable();
     void neosd_enable();
     void neosd_begin_reset();
+    void neosd_end_reset();
     void neosd_set_idle_clk(bool active);
     int neosd_busy();
 
@@ -259,6 +262,7 @@ extern "C" {
     void neosd_cmd_commit(SD_CMD_IDX cmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode, bool stopDAT = false);
 
     // Blocking functions (neosd_block.cpp)
+    void neosd_reset();
     uint64_t neosd_clint_time_get_ms();
     void neosd_wait_idle();
     bool neosd_cmd_wait_res(neosd_res_t* res, uint32_t rtimeout);

@@ -3,6 +3,7 @@ module neosd_cmd_fsm (
     input rstn_i,
     // Strobe used to sample / emit sd_cmd signals
     input clkstrb_i,
+    input fsm_rst_i,
 
     // Data load signals
     input[5:0] cmd_idx_i,
@@ -189,7 +190,10 @@ module neosd_cmd_fsm (
                     end
                 endcase
 
-                cmd_fsm_curr <= cmd_fsm_next;
+                if (fsm_rst_i == 1'b1)
+                    cmd_fsm_curr <= '0;
+                else
+                    cmd_fsm_curr <= cmd_fsm_next;
             end
         end
     end

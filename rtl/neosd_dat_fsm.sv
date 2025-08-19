@@ -3,6 +3,7 @@ module neosd_dat_fsm (
     input rstn_i,
     // Strobe used to sample / emit sd_cmd signals
     input clkstrb_i,
+    input fsm_rst_i,
 
     // Data load signals
     input[31:0] dat_i,
@@ -259,7 +260,10 @@ module neosd_dat_fsm (
                     dat_fsm_next.state = STATE_TAIL;
                 end
 
-                dat_fsm_curr <= dat_fsm_next;
+                if (fsm_rst_i == 1'b1)
+                    dat_fsm_curr <= '0;
+                else
+                    dat_fsm_curr <= dat_fsm_next;
             end
         end
     end

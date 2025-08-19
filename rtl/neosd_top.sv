@@ -96,6 +96,7 @@ module neosd (
             IRQ_FLAG_CMD_DONE <= '0;
             IRQ_FLAG_BLOCK_DONE <= '0;
             IRQ_FLAG_DAT_DONE <= '0;
+            STAT_CRC_ERR <= '0;
             // NEOSD_CMDARG_REG: Don't initialize
             NEOSD_CMD_REG_BASE <= '0;
             // NEOSD_RESP_REG: Don't initialize
@@ -108,7 +109,7 @@ module neosd (
                 NEOSD_CMD_REG_BASE.COMMIT <= 1'b0;
                 if (status_block_done == 1'b1) begin
                     IRQ_FLAG_BLOCK_DONE <= 1'b1;
-                    STAT_CRC_ERR <= STATUS_CRC_ERR | !status_crc_ok;
+                    STAT_CRC_ERR <= STAT_CRC_ERR | !status_crc_ok;
                 end
             end
 
@@ -223,6 +224,7 @@ module neosd (
         .clk_i(clk_i),
         .rstn_i(rstn_i),
         .clkstrb_i(clkstrb),
+        .fsm_rst_i(NEOSD_CTRL_REG.RST),
 
         .dat_i(wb_dat_i),
         .dat_load_i(dat_load),
@@ -279,6 +281,7 @@ module neosd (
         .clk_i(clk_i),
         .rstn_i(rstn_i),
         .clkstrb_i(clkstrb),
+        .fsm_rst_i(NEOSD_CTRL_REG.RST),
 
         .cmd_idx_i(cmd_idx),
         .cmd_idx_load_i(cmd_idx_load),

@@ -19,7 +19,7 @@ See below for a detailed TODO list.
 - [x] Transmitting SD Commands
 - [x] Receiving Short Responses (R1, R3, R6, R7)
 - [x] Receiving Long Responses (R2)
-- [ ] Response Timeout: Handled in Software. SW performs Reset of Controller, Reset not implemented in HW yet.
+- [x] Response Timeout: Handled in Software. SW performs Reset of Controller, Reset not implemented in HW yet.
 - [x] Reading Commands From Single 32 bit Register
 - [x] Stalling the SD Card Clock When Waiting for CPU to Read Data
 - [x] Clock Arbiter, so Both Command and Data FSM Can Stall Clock

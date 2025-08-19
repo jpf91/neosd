@@ -21,6 +21,25 @@ void neosd_wait_idle()
 }
 
 /**********************************************************************//**
+ * Reset and wait for FSMs to return to idle state.
+ *
+ * @note Use this after neosd_begin_reset to wait until reset is finished.
+ **************************************************************************/
+void neosd_reset()
+{
+    neosd_begin_reset();
+    while(neosd_busy()) {}
+    // Clear IRQ flags
+    NEOSD->IRQ_FLAG &= ~((1 << NEOSD_IRQ_CMD_DONE) | (1 << NEOSD_IRQ_DAT_DONE) | (1 << NEOSD_IRQ_DAT_BLOCK));
+    // Clear data irq flags
+    NEOSD->RESP;
+    NEOSD->DATA;
+    // Clear CRC sticky bit
+    NEOSD->STAT &= ~(1 << NEOSD_STAT_CRCERR);
+    neosd_end_reset();
+}
+
+/**********************************************************************//**
  * Blocking wait for CMD to finish.
  *
  * @returns false if timeout occured, true if successful.
@@ -34,8 +53,7 @@ bool neosd_cmd_wait_res(neosd_res_t* res, uint32_t rtimeout)
     {
         if (neosd_clint_time_get_ms() > timeout)
         {
-            neosd_begin_reset();
-            neosd_wait_idle();
+            neosd_reset();
             return false;
         }
 
