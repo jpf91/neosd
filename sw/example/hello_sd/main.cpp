@@ -232,7 +232,7 @@ void neosd_read_blocks_stop(size_t offset, size_t num)
         if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
         {
             NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
-            //neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (irq & (1 << NEOSD_STAT_CRCOK)) ? "ok" : "fail");
+            //neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (NEOSD->STAT & (1 << NEOSD_STAT_CRCERR)) ? "fail" : "ok");
 
             if (++blocks == num)
             {
@@ -423,7 +423,7 @@ int test_data_read()
 {
     neosd_res_t resp;
     // Now send CMD3. FIXME: USE RCA from CMD3 result
-    neosd_cmd_commit((SD_CMD_IDX)7, 1 << 16, NEOSD_RMODE_SHORT, /*NEOSD_DMODE_BUSY*/NEOSD_DMODE_NONE);
+    neosd_cmd_commit((SD_CMD_IDX)7, 1 << 16, NEOSD_RMODE_SHORT, NEOSD_DMODE_BUSY);
 
     NEOSD_DEBUG_MSG("NEOSD: Sent CMD7\n");
     if (!neosd_cmd_wait_res(&resp, NEOSD_CMD_TIMEOUT))
@@ -432,6 +432,7 @@ int test_data_read()
         return NEOSD_INCOMPAT_CARD;
     }
 
+    neosd_wait_idle();
     NEOSD_DEBUG_MSG("NEOSD: Got response\n");
     NEOSD_DEBUG_R1(&resp.rshort);
 
@@ -473,6 +474,8 @@ int test_data_read()
     neorv32_uart0_printf("D1 Mode:\n");
     neosd_set_data_mode(false);
     neosd_read_blocks_stop(0, 1);
+
+    neosd_reset();
 
     neorv32_uart0_printf("D4 Mode:\n");
     neosd_set_data_mode(true);
@@ -531,6 +534,8 @@ int main()
     neorv32_uart0_puts("Test program booted\n");
 
     neosd_setup(CLK_PRSC_1024, 0, 0);
+    // FIXME: Debug this
+    //neosd_set_idle_clk(true);
     neorv32_uart0_printf("NEOSD: Controller initialized\n");
 
     sd_card_t info;
