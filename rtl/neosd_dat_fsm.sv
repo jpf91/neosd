@@ -45,14 +45,23 @@ module neosd_dat_fsm (
     logic block_crc_nonzero, block_rstn_i, block_shift_s;
     logic[31:0] block_data_pi, block_data_po;
 
+    logic[2:0] crc_token[3:0];
     // Properly assign the block_data_pi/o: BE / LE swap
     genvar i, j;
     generate
       for (i = 0; i < 4; i = i + 1) begin: regs
+        assign crc_token[i][0] = block_data_po[4 + i];
+        assign crc_token[i][1] = block_data_po[8 + i];
+        assign crc_token[i][2] = block_data_po[12 + i];
+
         assign block_data_pi[(i+1)*8-1:i*8] = dat_i[(3-i+1)*8-1:(3-i)*8];
         assign dat_o[(i+1)*8-1:i*8] = block_data_po[(3-i+1)*8-1:(3-i)*8];
       end
     endgenerate
+
+    logic[2:0] dbg_crc_token;
+    assign dbg_crc_token = crc_token[0];
+
 
     logic block_ctrl_rnw, block_ctrl_rot_reg, block_ctrl_output_crc, block_ctrl_rstn_crc, block_ctrl_rstn_reg, block_ctrl_rstn_rot;
     logic[1:0] block_ctrl_omux;
@@ -87,7 +96,8 @@ module neosd_dat_fsm (
     );
 
     typedef enum logic[3:0] {STATE_IDLE, STATE_WAIT_BLOCK, STATE_READ_BLOCK, STATE_REGOUT, STATE_READ_CRC, STATE_READ_FINISH,
-        STATE_WRITE_BLOCK, STATE_REGIN, STATE_WRITE_CRC, STATE_TAIL, STATE_WAIT_BUSY} STATE;
+        STATE_TAIL, STATE_WAIT_BUSY,
+        STATE_WRITE_START, STATE_WRITE_DATA, STATE_WRITE_REGIN, STATE_WRITE_CRC, STATE_WRITE_STOP, STATE_WRITE_CHECK_CRC} STATE;
 
     typedef struct packed {
         STATE state;
@@ -99,6 +109,7 @@ module neosd_dat_fsm (
         logic block_ctrl_rnw, block_ctrl_rot_reg, block_ctrl_output_crc, block_ctrl_rstn_crc, block_ctrl_rstn_reg, block_shift_s, block_ctrl_rstn_rot;
         logic[1:0] block_ctrl_omux;
         logic crc_ok, block_done;
+        logic write_start;
     } FSM_STATE;
     FSM_STATE dat_fsm_curr;
     FSM_STATE dat_fsm_next;
@@ -112,7 +123,7 @@ module neosd_dat_fsm (
     assign dbg_word_counter = dat_fsm_curr.word_counter;
 
     assign status_idle_o = dat_fsm_curr.state == STATE_IDLE;
-    assign status_data_o = dat_fsm_curr.state == STATE_REGOUT;
+    assign status_data_o = dat_fsm_curr.state == STATE_REGOUT || dat_fsm_curr.state == STATE_WRITE_REGIN;
 
     assign sd_clk_req_o = dat_fsm_curr.clk_req;
     assign sd_clk_stall_o = dat_fsm_curr.clk_stall;
@@ -166,6 +177,14 @@ module neosd_dat_fsm (
                                 DATA_BUSY: begin
                                     dat_fsm_next.clk_req = 1'b1;
                                     dat_fsm_next.state = STATE_WAIT_BUSY;
+                                end
+                                DATA_W: begin
+                                    dat_fsm_next.write_start = 1'b1;
+                                    dat_fsm_next.block_ctrl_rnw = 1'b0;
+                                    dat_fsm_next.clk_req = 1'b1;
+                                    // Technically, we don't have to stall here
+                                    dat_fsm_next.clk_stall = 1'b1;
+                                    dat_fsm_next.state = STATE_WRITE_REGIN;
                                 end
                             endcase
                         end
@@ -246,6 +265,103 @@ module neosd_dat_fsm (
                         if ((sd_clk_en_i == 1'b1) && (sd_dat0_i == 1'b1)) begin
                             dat_fsm_next.state = STATE_TAIL;
                             dat_fsm_next.bit_counter = 0;
+                        end
+                    end
+                    STATE_WRITE_REGIN: begin
+                        if (ctrl_dat_ack_i == 1'b1) begin
+                            dat_fsm_next.clk_stall = 1'b0;
+                            dat_fsm_next.bit_counter = 0;
+                            
+                            if (dat_fsm_next.write_start == 1'b1) begin
+                                dat_fsm_next.block_ctrl_omux = 2'b00;
+                                dat_fsm_next.dat_oe = 1'b1;
+                                dat_fsm_next.state = STATE_WRITE_START;
+                            end else begin
+                                dat_fsm_next.state = STATE_WRITE_DATA;
+                            end
+                        end
+                    end
+                    STATE_WRITE_START: begin
+                        // Only continue, if not stalled
+                        if (sd_clk_en_i == 1'b1) begin
+                            dat_fsm_next.state = STATE_WRITE_DATA;
+                            dat_fsm_next.write_start = 1'b0;
+                            dat_fsm_next.block_ctrl_omux = 2'b10;
+                            dat_fsm_next.block_shift_s = 1'b1;
+                            dat_fsm_next.word_counter = 128;
+                            dat_fsm_next.block_ctrl_rstn_crc = 1'b1;
+                            dat_fsm_next.block_ctrl_rstn_reg = 1'b1;
+                            dat_fsm_next.block_ctrl_rstn_rot = 1'b1;
+                            dat_fsm_next.block_ctrl_rot_reg = 1'b1;
+                        end
+                    end
+                    STATE_WRITE_DATA: begin
+                        // Only count, if not stalled
+                        if (sd_clk_en_i == 1'b1) begin
+                            if (dat_fsm_curr.bit_counter == (ctrl_d4_i == 1'b1 ? 7 : 31)) begin
+                                dat_fsm_next.bit_counter = 0;
+                                dat_fsm_next.word_counter = dat_fsm_curr.word_counter - 1;
+                                if (dat_fsm_curr.word_counter == 1) begin
+                                    dat_fsm_next.block_ctrl_omux = 2'b11;
+                                    dat_fsm_next.block_ctrl_output_crc = 1'b1;
+                                    dat_fsm_next.state = STATE_WRITE_CRC;
+                                end else begin
+                                    dat_fsm_next.clk_stall = 1;
+                                    dat_fsm_next.state = STATE_WRITE_REGIN;
+                                end
+                            end else begin
+                                dat_fsm_next.bit_counter = dat_fsm_curr.bit_counter + 1;
+                            end
+                        end
+                    end
+                    STATE_WRITE_CRC: begin
+                        // Only count, if not stalled
+                        if (sd_clk_en_i == 1'b1) begin
+                            if (dat_fsm_curr.bit_counter == 15) begin
+                                dat_fsm_next.bit_counter = 0;
+                                dat_fsm_next.block_ctrl_omux = 2'b01;
+                                dat_fsm_next.block_ctrl_output_crc = 1'b0;
+                                dat_fsm_next.state = STATE_WRITE_STOP;
+                            end else begin
+                                dat_fsm_next.bit_counter = dat_fsm_curr.bit_counter + 1;
+                            end
+                        end
+                    end
+                    STATE_WRITE_STOP: begin
+                        // Only continue, if not stalled
+                        if (sd_clk_en_i == 1'b1) begin
+                            dat_fsm_next.state = STATE_WRITE_CHECK_CRC;
+                            dat_fsm_next.dat_oe = 1'b0;
+                        end
+                    end
+                    STATE_WRITE_CHECK_CRC: begin
+                        // Only continue, if not stalled
+                        if (sd_clk_en_i == 1'b1) begin
+                            if (dat_fsm_curr.bit_counter == 6) begin
+                                dat_fsm_next.bit_counter = 0;
+                                dat_fsm_next.write_start = 1'b1;
+                                dat_fsm_next.block_shift_s = 1'b0;
+                                dat_fsm_next.block_ctrl_rstn_crc = 1'b0;
+                                dat_fsm_next.block_ctrl_rstn_reg = 1'b0;
+                                dat_fsm_next.block_ctrl_rstn_rot = 1'b0;
+                                dat_fsm_next.block_ctrl_rot_reg = 1'b0;
+
+                                // CRC token check
+                                if (ctrl_d4_i == 1'b1) begin
+                                    dat_fsm_next.crc_ok = ((crc_token[0] == 3'b010) &&
+                                        (crc_token[1] == 3'b010) &&
+                                        (crc_token[2] == 3'b010) &&
+                                        (crc_token[3] == 3'b010));
+                                end else begin
+                                    dat_fsm_next.crc_ok = crc_token[0] == 3'b010; 
+                                end
+                                dat_fsm_next.block_done = 1'b1;
+
+                                dat_fsm_next.clk_stall = 1'b1;
+                                dat_fsm_next.state = STATE_WRITE_REGIN;
+                            end else begin
+                                dat_fsm_next.bit_counter = dat_fsm_curr.bit_counter + 1;
+                            end
                         end
                     end
                     default: begin

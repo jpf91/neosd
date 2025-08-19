@@ -1,0 +1,75 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Tue Aug 19 19:40:50 2025
+[*]
+[dumpfile] "/home/jpfau/Dokumente/Projekte/FPGA/tang20k-neorv32/lib/neosd/test/tb.vcd"
+[dumpfile_mtime] "Tue Aug 19 19:39:16 2025"
+[dumpfile_size] 11403115
+[savefile] "/home/jpfau/Dokumente/Projekte/FPGA/tang20k-neorv32/lib/neosd/test/test_write_block_d1.gtkw"
+[timestart] 1016789000
+[size] 1920 1001
+[pos] -1 -1
+*-18.486240 861260000 117420000 507997000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb.
+[treeopen] tb.dut.
+[treeopen] tb.dut.dat_fsm.
+[sst_width] 297
+[signals_width] 479
+[sst_expanded] 1
+[sst_vpaned_height] 298
+@28
+tb.clk
+tb.rstn
+tb.sd_clk_o
+tb.sd_cmd_oe
+tb.sd_cmd_i
+tb.sd_cmd_o
+tb.sd_dat0_i
+tb.dut.sd_dat0_o
+tb.dut.sd_dat0_oe
+tb.dut.sd_dat1_i
+tb.dut.sd_dat1_o
+tb.dut.sd_dat1_oe
+tb.dut.sd_dat2_i
+tb.dut.sd_dat2_o
+tb.dut.sd_dat2_oe
+tb.dut.sd_dat3_i
+tb.dut.sd_dat3_o
+tb.dut.sd_dat3_oe
+tb.wb_cyc_i
+tb.wb_stb_i
+tb.wb_we_i
+@22
+tb.wb_adr_i[31:0]
+@28
+tb.wb_dat_i[31:0]
+tb.wb_dat_o[31:0]
+tb.wb_ack_o
+tb.dut.status_idle_cmd
+tb.dut.status_idle_dat
+@200
+-DAT FSM
+@28
+tb.dut.dat_fsm.ctrl_dat_ack_i
+tb.dut.IRQ_FLAG_DAT_DATA
+tb.dut.IRQ_FLAG_BLOCK_DONE
+tb.dut.dat_fsm.ctrl_start_i
+tb.dut.sd_clk_req_dat
+tb.dut.sd_clk_stall_dat
+@23
+tb.dut.dat_fsm.dbg_state[3:0]
+@28
+tb.dut.dat_fsm.status_crc_ok_o
+@22
+tb.dut.dat_fsm.block.crc_data_s_o[3:0]
+@28
+tb.dut.dat_fsm.block.ctrl_output_crc_i
+tb.dut.dat_fsm.block.ctrl_omux_i[1:0]
+@22
+tb.dut.dat_fsm.dat_o[31:0]
+tb.dut.dat_fsm.block_data_po[31:0]
+@28
+tb.dut.dat_fsm.block_shift_s
+tb.dut.dat_fsm.dbg_crc_token[2:0]
+[pattern_trace] 1
+[pattern_trace] 0

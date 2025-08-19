@@ -214,11 +214,13 @@ async def init_test(dut):
 
     return wbs
 
-async def configure_peripheral(dut, wbs, idleClk):
+async def configure_peripheral(dut, wbs, idleClk, d4Mode = True):
     # CDIV = 4, D4MODE
-    cfg = 0b1_001_0_0_1
+    cfg = 0b0_001_0_0_1
     if (idleClk):
         cfg = cfg | 0b10000000
+    if (d4Mode):
+        cfg = cfg | 0b1000000
     await wbs.send_cycle([WBOp(0x0, cfg), WBOp(0x0)])
     await ClockCycles(dut.clk, 3)
 
@@ -299,3 +301,118 @@ async def test_busy_response(dut):
     # Should be in idle state again
     result = await wbs.send_cycle([WBOp(0x4)])
     assert((result[0].datrd & 0b11) == 0)
+
+
+async def write_block_data(dut, wbs, d4Mode):
+    # Write data
+    for i in range(128):
+        await wbs.send_cycle([WBOp(0x1C, 0xabcd0123)])
+        if (d4Mode):
+            await ClockCycles(dut.clk, 12*8)
+        else:
+            await ClockCycles(dut.clk, 4*12*8)
+        #result = await wbs.send_cycle([WBOp(0x8)])
+        #assert((result[0].datrd & 0b1000) != 0)
+
+    # Wrote 512 byte. driver now writes CRC on it's own
+    await FallingEdge(dut.sd_dat0_oe)
+
+    # Here we start sampling again
+    # The start bit needs to come 2 cycles after the data block end bit
+    await FallingEdge(dut.sd_clk_o)
+    await FallingEdge(dut.sd_clk_o)
+
+    # Start bit
+    dut.sd_dat0_i.value = 0
+    if (d4Mode):
+        dut.sd_dat1_i.value = 0
+        dut.sd_dat2_i.value = 0
+        dut.sd_dat3_i.value = 0
+
+    await FallingEdge(dut.sd_clk_o)
+    dut.sd_dat0_i.value = 0
+    if (d4Mode):
+        dut.sd_dat1_i.value = 0
+        dut.sd_dat2_i.value = 0
+        dut.sd_dat3_i.value = 0
+
+    await FallingEdge(dut.sd_clk_o)
+    dut.sd_dat0_i.value = 1
+    if (d4Mode):
+        dut.sd_dat1_i.value = 1
+        dut.sd_dat2_i.value = 1
+        dut.sd_dat3_i.value = 1
+
+    await FallingEdge(dut.sd_clk_o)
+    dut.sd_dat0_i.value = 0
+    if (d4Mode):
+        dut.sd_dat1_i.value = 0
+        dut.sd_dat2_i.value = 0
+        dut.sd_dat3_i.value = 0
+
+    # End bit
+    await FallingEdge(dut.sd_clk_o)
+    dut.sd_dat0_i.value = 1
+    if (d4Mode):
+        dut.sd_dat1_i.value = 1
+        dut.sd_dat2_i.value = 1
+        dut.sd_dat3_i.value = 1
+
+    await ClockCycles(dut.clk, 10*8)
+
+async def test_write_block(dut, d4Mode):
+    wbs = await init_test(dut)
+    await configure_peripheral(dut, wbs, False, d4Mode)
+
+    # CMDArg 0x10, IDX=0b101010 CRC=1110011 SHORT Response, DATA WRITE, COMMIT
+    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b00101010_01110011_00_01_11_0_1)])
+    await ClockCycles(dut.clk, 64*8)
+
+    # Read the response
+    dut.sd_cmd_i.value = 0
+    await ClockCycles(dut.clk, 16*8)
+    # Read flag reg, then read rdata reg
+    await wbs.send_cycle([WBOp(0x8), WBOp(0x18)])
+
+    await ClockCycles(dut.clk, 34*8)
+    # Read flag reg, then read rdata reg
+    await wbs.send_cycle([WBOp(0x8), WBOp(0x18)])
+    dut.sd_cmd_i.value = 1
+    # SD Clock is stalled here
+    await ClockCycles(dut.clk, 8*8)
+
+    # Flags should have data interrupt
+    result = await wbs.send_cycle([WBOp(0x8)])
+    assert((result[0].datrd & 0b1000) != 0)
+
+    await write_block_data(dut, wbs, d4Mode)
+
+    # Flags should have data interrupt
+    result = await wbs.send_cycle([WBOp(0x8)])
+    assert((result[0].datrd & 0b1000) != 0)
+
+    await write_block_data(dut, wbs, d4Mode)
+
+    # Send stop CMD
+    # CMDArg 0x10, IDX=0b101010 CRC=1110011 SHORT Response, No Data, LAST BLOCK, COMMIT
+    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b00101010_01110011_00_01_00_1_1)])
+
+    # Read full response
+    dut.sd_cmd_i.value = 0
+    await ClockCycles(dut.clk, 64*8)
+    # Read flag reg, then read rdata reg
+    await wbs.send_cycle([WBOp(0x8), WBOp(0x18)])
+
+    await ClockCycles(dut.clk, 40*8)
+    # Read flag reg, then read rdata reg
+    await wbs.send_cycle([WBOp(0x8), WBOp(0x18)])
+
+    await ClockCycles(dut.clk, 64*16)
+
+@cocotb.test()
+async def test_write_block_d1(dut):
+    await test_write_block(dut, False)
+
+@cocotb.test()
+async def test_write_block_d4(dut):
+    await test_write_block(dut, True)
