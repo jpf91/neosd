@@ -98,8 +98,9 @@ async def test_read_block(dut, wbs):
         dut.sd_dat1_i.value = crc[i]
         dut.sd_dat2_i.value = crc[i]
         dut.sd_dat3_i.value = crc[i]
+    
 
-@cocotb.test()
+#@cocotb.test()
 async def test_project(dut):
     dut._log.info("Start")
 
@@ -179,3 +180,85 @@ async def test_project(dut):
     await ClockCycles(dut.clk, 64*16)
     # Read flag reg, then read data reg
     #await wbs.send_cycle([WBOp(0x8), WBOp(0x1C)])
+
+
+async def init_test(dut):
+    dut._log.info("Start")
+
+    # Set the clock to 100 MHz
+    clock = Clock(dut.clk, 10, units="ns")
+    cocotb.start_soon(clock.start())
+
+    wbs = WishboneMaster(dut, "", dut.clk,
+        width=32,
+        timeout=10,
+        signals_dict={"cyc":  "wb_cyc_i",
+                    "stb":  "wb_stb_i",
+                    "we":   "wb_we_i",
+                    "adr":  "wb_adr_i",
+                    "datwr":"wb_dat_i",
+                    "datrd":"wb_dat_o",
+                    "ack":  "wb_ack_o" })
+
+    dut.sd_cmd_i.value = 1
+    dut.sd_dat0_i.value = 1
+    dut.sd_dat1_i.value = 1
+    dut.sd_dat2_i.value = 1
+    dut.sd_dat3_i.value = 1
+
+    # Reset
+    dut._log.info("Reset")
+    dut.rstn.value = 0
+    await ClockCycles(dut.clk, 3)
+    dut.rstn.value = 1
+
+    return wbs
+
+async def configure_peripheral(dut, wbs, idleClk):
+    # CDIV = 4, D4MODE
+    cfg = 0b1_001_0_0_1
+    if (idleClk):
+        cfg = cfg | 0b10000000
+    await wbs.send_cycle([WBOp(0x0, cfg), WBOp(0x0)])
+    await ClockCycles(dut.clk, 3)
+
+async def test_fsm_rst_impl(dut, idleClk):
+    wbs = await init_test(dut)
+    await configure_peripheral(dut, wbs, idleClk)
+
+    # CMDArg 0x10, IDX=0b101010 CRC=1110011 SHORT Response, READ BLOCK, LAST BLOCK, COMMIT
+    await wbs.send_cycle([WBOp(0x10, 42), WBOp(0x14, 0b00101010_01110011_00_01_10_0_1)])
+    await ClockCycles(dut.clk, 64*8)
+
+    # FSM should report busy
+    await wbs.send_cycle([WBOp(0x4)])
+
+    # Send reset request
+    result = await wbs.send_cycle([WBOp(0x0)])
+    cfg = result[0].datrd | 0b10
+    await wbs.send_cycle([WBOp(0x0, cfg)])
+
+    # Should go to idle
+    isIdle = False
+    for i in range(20):
+        result = await wbs.send_cycle([WBOp(0x4)])
+        if (result[0].datrd & 0b11 == 0b11):
+            isIdle = True
+            break
+
+    # Release reset
+    assert(isIdle)
+    result = await wbs.send_cycle([WBOp(0x0)])
+    cfg = result[0].datrd & ~0b10
+    await wbs.send_cycle([WBOp(0x0, cfg)])
+
+    # Wait some time in idle and check that SD clock is toggling
+    await ClockCycles(dut.clk, 8*8)
+
+@cocotb.test()
+async def test_fsm_rst(dut):
+    await test_fsm_rst_impl(dut, False)
+
+@cocotb.test()
+async def test_fsm_rst_idleclk(dut):
+    await test_fsm_rst_impl(dut, True)
