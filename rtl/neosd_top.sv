@@ -1,7 +1,6 @@
 module neosd (
     input clk_i,
     input rstn_i,
-    input[7:0] clkgen_i,
 
     input[31:0] wb_adr_i,
     input[31:0] wb_dat_i,
@@ -326,11 +325,20 @@ module neosd (
         end
     end
 
+    logic[7:0] clkgen;
+
+    neosd_clken clken (
+        .clk_i(clk_i),
+        .rstn_i(rstn_i),
+        .clk_en_o(clkgen),
+        .enable_i(1'b1)
+    );
+    
     // SD Implementation: CLK
     neosd_clk sd_clk (
         .clk_i(clk_i),
         .rstn_i(rstn_i),
-        .clkgen_i(clkgen_i),
+        .clkgen_i(clkgen),
         .sd_clksel_i(NEOSD_CTRL_REG.CDIV),
         .clkstrb_o(clkstrb),
         .sd_clk_req_i({sd_clk_req_cmd, sd_clk_req_dat}),
