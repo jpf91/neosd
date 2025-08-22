@@ -10,7 +10,6 @@ module neosd (
     input wb_cyc_i,
 
     output reg wb_ack_o,
-    output wb_err_o,
     output reg[31:0] wb_dat_o,
 
     // SD Card Signals
@@ -205,9 +204,8 @@ module neosd (
             wb_ack_o <= (wb_stb_i && !wb_stall_o);
     end
 
-    // Never stall, never error
+    // Never stall
     assign wb_stall_o = 1'b0;
-    assign wb_err_o = 1'b0;
 
     logic sd_clk_en;
     logic sd_clk_req_dat, sd_clk_stall_dat;
