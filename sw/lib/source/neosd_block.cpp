@@ -1,4 +1,5 @@
 #include "neosd.h"
+#include "neosd_dbg.h"
 #include "neorv32.h"
 
 #ifdef __cplusplus
@@ -53,7 +54,7 @@ bool neosd_cmd_wait_res(neosd_res_t* res, uint32_t rtimeout)
 }
 
 SD_CODE neosd_acmd_commit(SD_CMD_IDX acmd, uint32_t arg, NEOSD_RMODE rmode,
-    NEOSD_DMODE dmode, sd_status_t* status, size_t rca)
+    NEOSD_DMODE dmode, sd_status_t* status, size_t rca, uint32_t rtimeout)
 {
     // 4.3.9.1 Application-Specific Command – APP_CMD (CMD55)
 
@@ -61,12 +62,11 @@ SD_CODE neosd_acmd_commit(SD_CMD_IDX acmd, uint32_t arg, NEOSD_RMODE rmode,
     NEOSD_DEBUG_MSG("NEOSD: Sent CMD55\n");
 
     neosd_res_t resp;
-    if (!neosd_cmd_wait_res(&resp, NEOSD_CMD_TIMEOUT))
+    if (!neosd_cmd_wait_res(&resp, rtimeout))
     {
         NEOSD_DEBUG_MSG("NEOSD: No response\n");
         return NEOSD_TIMEOUT;
     }
-    NEOSD_DEBUG_MSG("NEOSD: Got response.\n");
     NEOSD_DEBUG_R1(&resp.rshort);
 
     if (!neosd_rshort_check(&resp.rshort))
