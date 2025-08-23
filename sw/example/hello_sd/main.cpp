@@ -433,6 +433,7 @@ int test_data_read()
     }
 
     neosd_wait_idle();
+    NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
     NEOSD_DEBUG_MSG("NEOSD: Got response\n");
     NEOSD_DEBUG_R1(&resp.rshort);
 
