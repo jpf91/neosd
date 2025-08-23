@@ -534,7 +534,6 @@ int main()
     neorv32_uart0_puts("Test program booted\n");
 
     neosd_setup(CLK_PRSC_1024, 0, 0);
-    // FIXME: Debug this
     //neosd_set_idle_clk(true);
     neorv32_uart0_printf("NEOSD: Controller initialized\n");
 
