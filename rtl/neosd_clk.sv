@@ -38,7 +38,7 @@ module neosd_clk (
             if (sd_clk_div == 1'b1) begin
                 sd_clk_div_last <= !sd_clk_div_last;
                 if (sd_clk_en_o == 1'b1)
-                    sd_clk_o <= !sd_clk_o;
+                    sd_clk_o <= !sd_clk_div_last;
                 else
                     sd_clk_o <= 1'b0;
             end
