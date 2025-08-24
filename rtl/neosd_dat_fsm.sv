@@ -45,23 +45,19 @@ module neosd_dat_fsm (
     logic block_crc_nonzero, block_rstn_i, block_shift_s;
     logic[31:0] block_data_pi, block_data_po;
 
-    logic[2:0] crc_token[3:0];
+    logic[2:0] crc_token;
+    assign crc_token[0] = block_data_po[4];
+    assign crc_token[1] = block_data_po[8];
+    assign crc_token[2] = block_data_po[12];
+
     // Properly assign the block_data_pi/o: BE / LE swap
     genvar i, j;
     generate
       for (i = 0; i < 4; i = i + 1) begin: regs
-        assign crc_token[i][0] = block_data_po[4 + i];
-        assign crc_token[i][1] = block_data_po[8 + i];
-        assign crc_token[i][2] = block_data_po[12 + i];
-
         assign block_data_pi[(i+1)*8-1:i*8] = dat_i[(3-i+1)*8-1:(3-i)*8];
         assign dat_o[(i+1)*8-1:i*8] = block_data_po[(3-i+1)*8-1:(3-i)*8];
       end
     endgenerate
-
-    logic[2:0] dbg_crc_token;
-    assign dbg_crc_token = crc_token[0];
-
 
     logic block_ctrl_rnw, block_ctrl_rot_reg, block_ctrl_output_crc, block_ctrl_rstn_crc, block_ctrl_rstn_reg, block_ctrl_rstn_rot;
     logic[1:0] block_ctrl_omux;
@@ -182,7 +178,7 @@ module neosd_dat_fsm (
                                     dat_fsm_next.write_start = 1'b1;
                                     dat_fsm_next.block_ctrl_rnw = 1'b0;
                                     dat_fsm_next.clk_req = 1'b1;
-                                    // Technically, we don't have to stall here
+                                    // Technically, we don't necessarily have to stall here
                                     dat_fsm_next.clk_stall = 1'b1;
                                     dat_fsm_next.state = STATE_WRITE_REGIN;
                                 end
@@ -344,21 +340,10 @@ module neosd_dat_fsm (
                                 dat_fsm_next.block_ctrl_rstn_crc = 1'b0;
                                 dat_fsm_next.block_ctrl_rstn_reg = 1'b0;
                                 dat_fsm_next.block_ctrl_rstn_rot = 1'b0;
-                                dat_fsm_next.block_ctrl_rot_reg = 1'b0;
 
-                                // CRC token check
-                                if (ctrl_d4_i == 1'b1) begin
-                                    dat_fsm_next.crc_ok = ((crc_token[0] == 3'b010) &&
-                                        (crc_token[1] == 3'b010) &&
-                                        (crc_token[2] == 3'b010) &&
-                                        (crc_token[3] == 3'b010));
-                                end else begin
-                                    dat_fsm_next.crc_ok = crc_token[0] == 3'b010; 
-                                end
-                                dat_fsm_next.block_done = 1'b1;
+                                dat_fsm_next.crc_ok = crc_token == 3'b010; 
 
-                                dat_fsm_next.clk_stall = 1'b1;
-                                dat_fsm_next.state = STATE_WRITE_REGIN;
+                                dat_fsm_next.state = STATE_WRITE_BUSY;
                             end else begin
                                 dat_fsm_next.bit_counter = dat_fsm_curr.bit_counter + 1;
                             end
