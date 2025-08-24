@@ -180,6 +180,7 @@ module neosd_dat_fsm (
                                     dat_fsm_next.clk_req = 1'b1;
                                     // Technically, we don't necessarily have to stall here
                                     dat_fsm_next.clk_stall = 1'b1;
+                                    dat_fsm_next.block_ctrl_rstn_reg = 1'b1;
                                     dat_fsm_next.state = STATE_WRITE_REGIN;
                                 end
                             endcase
@@ -286,7 +287,6 @@ module neosd_dat_fsm (
                             dat_fsm_next.block_shift_s = 1'b1;
                             dat_fsm_next.word_counter = 128;
                             dat_fsm_next.block_ctrl_rstn_crc = 1'b1;
-                            dat_fsm_next.block_ctrl_rstn_reg = 1'b1;
                             dat_fsm_next.block_ctrl_rstn_rot = 1'b1;
                             dat_fsm_next.block_ctrl_rot_reg = 1'b1;
                         end
