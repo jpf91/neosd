@@ -306,7 +306,7 @@ async def test_busy_response(dut):
 async def write_block_data(dut, wbs, d4Mode):
     # Write data
     for i in range(128):
-        await wbs.send_cycle([WBOp(0x1C, 0xabcd0123)])
+        await wbs.send_cycle([WBOp(0x1C, 0xFFFFFFFF)])
         if (d4Mode):
             await ClockCycles(dut.clk, 12*8)
         else:
@@ -323,40 +323,31 @@ async def write_block_data(dut, wbs, d4Mode):
     await FallingEdge(dut.sd_clk_o)
 
     # Start bit
+
     dut.sd_dat0_i.value = 0
-    if (d4Mode):
-        dut.sd_dat1_i.value = 0
-        dut.sd_dat2_i.value = 0
-        dut.sd_dat3_i.value = 0
+    dut.sd_dat1_i.value = 1
+    dut.sd_dat2_i.value = 1
+    dut.sd_dat3_i.value = 1
 
     await FallingEdge(dut.sd_clk_o)
     dut.sd_dat0_i.value = 0
-    if (d4Mode):
-        dut.sd_dat1_i.value = 0
-        dut.sd_dat2_i.value = 0
-        dut.sd_dat3_i.value = 0
 
     await FallingEdge(dut.sd_clk_o)
     dut.sd_dat0_i.value = 1
-    if (d4Mode):
-        dut.sd_dat1_i.value = 1
-        dut.sd_dat2_i.value = 1
-        dut.sd_dat3_i.value = 1
 
     await FallingEdge(dut.sd_clk_o)
     dut.sd_dat0_i.value = 0
-    if (d4Mode):
-        dut.sd_dat1_i.value = 0
-        dut.sd_dat2_i.value = 0
-        dut.sd_dat3_i.value = 0
 
     # End bit
     await FallingEdge(dut.sd_clk_o)
     dut.sd_dat0_i.value = 1
-    if (d4Mode):
-        dut.sd_dat1_i.value = 1
-        dut.sd_dat2_i.value = 1
-        dut.sd_dat3_i.value = 1
+
+    # Busy marker
+    await FallingEdge(dut.sd_clk_o)
+    dut.sd_dat0_i.value = 0
+
+    await FallingEdge(dut.sd_clk_o)
+    dut.sd_dat0_i.value = 1
 
     await ClockCycles(dut.clk, 10*8)
 
