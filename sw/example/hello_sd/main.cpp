@@ -506,7 +506,7 @@ void neosd_write_blocks_stop(size_t offset, size_t num)
         {
             if (data < 128 * num)
             {
-                NEOSD->DATA = 0xFFFFFFFF;
+                NEOSD->DATA = data;
                 neorv32_uart0_printf("=> Data: %x\n", data);
                 data++;
             }
@@ -599,7 +599,7 @@ bool neosd_write_blocks_23(size_t offset, size_t num)
         }
         if (irq & (1 << NEOSD_IRQ_DAT_DATA))
         {
-            NEOSD->DATA = 0xFF;
+            NEOSD->DATA = 0xFFFFFFFF;
             neorv32_uart0_printf("DATA \n");
         }
         if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
