@@ -313,13 +313,14 @@ module neosd_dat_fsm (
                     STATE_WRITE_CRC: begin
                         // Only count, if not stalled
                         if (sd_clk_en_i == 1'b1) begin
-                            if (dat_fsm_curr.bit_counter == 15) begin
+                            dat_fsm_next.bit_counter = dat_fsm_curr.bit_counter + 1;
+                            if (dat_fsm_curr.bit_counter == 14) begin
+                                dat_fsm_next.block_ctrl_rot_reg = 1'b0;
+                            end else if (dat_fsm_curr.bit_counter == 15) begin
                                 dat_fsm_next.bit_counter = 0;
                                 dat_fsm_next.block_ctrl_omux = 2'b01;
                                 dat_fsm_next.block_ctrl_output_crc = 1'b0;
                                 dat_fsm_next.state = STATE_WRITE_STOP;
-                            end else begin
-                                dat_fsm_next.bit_counter = dat_fsm_curr.bit_counter + 1;
                             end
                         end
                     end
