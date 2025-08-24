@@ -232,7 +232,8 @@ void neosd_read_blocks_stop(size_t offset, size_t num)
         if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
         {
             NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
-            //neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (NEOSD->STAT & (1 << NEOSD_STAT_CRCERR)) ? "fail" : "ok");
+            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (NEOSD->STAT & (1 << NEOSD_STAT_CRCERR)) ? "fail" : "ok");
+            NEOSD->STAT = 0;
 
             if (++blocks == num)
             {
@@ -375,7 +376,8 @@ bool neosd_read_block(size_t offset)
         if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
         {
             NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
-            //neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (irq & (1 << NEOSD_STAT_CRCOK)) ? "ok" : "fail");
+            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (NEOSD->STAT & (1 << NEOSD_STAT_CRCERR)) ? "fail" : "ok");
+            NEOSD->STAT = 0;
 
             NEOSD->CMD = (1 << NEOSD_CMD_LAST_BLOCK);
         }
@@ -457,7 +459,7 @@ int test_data_read()
     // Increase clock rate
     NEOSD_DEBUG_MSG("NEOSD: Increasing Clock Rate\n");
     uint32_t ctrl = NEOSD->CTRL;
-    ctrl &= ~(0b111 << NEOSD_CTRL_CDIV0);
+    ctrl &= ~(CLK_PRSC_8 << NEOSD_CTRL_CDIV0);
     NEOSD->CTRL = ctrl | (CLK_PRSC_2 << NEOSD_CTRL_CDIV0);
 
 
