@@ -93,7 +93,7 @@ module neosd_dat_fsm (
 
     typedef enum logic[3:0] {STATE_IDLE, STATE_WAIT_BLOCK, STATE_READ_BLOCK, STATE_REGOUT, STATE_READ_CRC, STATE_READ_FINISH,
         STATE_TAIL, STATE_WAIT_BUSY,
-        STATE_WRITE_START, STATE_WRITE_DATA, STATE_WRITE_REGIN, STATE_WRITE_CRC, STATE_WRITE_STOP, STATE_WRITE_CHECK_CRC, STATE_WRITE_BUSY} STATE;
+        STATE_WRITE_START, STATE_WRITE_DATA, STATE_WRITE_REGIN, STATE_WRITE_CRC, STATE_WRITE_STOP, STATE_WRITE_CHECK_CRC, STATE_WRITE_BUSY, STATE_WRITE_TAIL} STATE;
 
     typedef struct packed {
         STATE state;
@@ -354,9 +354,20 @@ module neosd_dat_fsm (
                         // Only continue, if not stalled
                         if ((sd_clk_en_i == 1'b1) && (sd_dat0_i == 1'b1)) begin
                             dat_fsm_next.block_done = 1'b1;
-                            dat_fsm_next.clk_stall = 1'b1;
-                            dat_fsm_next.block_ctrl_rstn_reg = 1'b1;
-                            dat_fsm_next.state = STATE_WRITE_REGIN;
+                            dat_fsm_next.state = STATE_WRITE_TAIL;
+                        end
+                    end
+                    STATE_WRITE_TAIL: begin
+                        // Only continue, if not stalled
+                        if (sd_clk_en_i == 1'b1) begin
+                            if (dat_fsm_curr.bit_counter == 7) begin
+                                dat_fsm_next.bit_counter = 0;
+                                dat_fsm_next.clk_stall = 1'b1;
+                                dat_fsm_next.block_ctrl_rstn_reg = 1'b1;
+                                dat_fsm_next.state = STATE_WRITE_REGIN;
+                            end else begin
+                                dat_fsm_next.bit_counter = dat_fsm_curr.bit_counter + 1;
+                            end
                         end
                     end
                     default: begin

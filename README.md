@@ -28,7 +28,7 @@ See below for a detailed TODO list.
 - [x] Single Data Block Read
 - [x] Single Data Block Write
 - [x] Multiple Data Block Read (includes proper Stop CMD Timing)
-- [ ] Multiple Data Block Write (includes proper Stop CMD Timing)
+- [x] Multiple Data Block Write (includes proper Stop CMD Timing)
 - [x] 1-Wire Data Transport
 - [x] 4-Wire Data Transport
 - [ ] Interrupt Support
