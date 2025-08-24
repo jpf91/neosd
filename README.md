@@ -26,7 +26,7 @@ See below for a detailed TODO list.
 - [x] Continuous Clocking During Idle for ACMD41
 - [x] Busy Response (R1b) Support
 - [x] Single Data Block Read
-- [ ] Single Data Block Write
+- [x] Single Data Block Write
 - [x] Multiple Data Block Read (includes proper Stop CMD Timing)
 - [ ] Multiple Data Block Write (includes proper Stop CMD Timing)
 - [x] 1-Wire Data Transport
@@ -42,9 +42,6 @@ See below for a detailed TODO list.
 - [ ] Low-Level Interrupt API
 - [ ] FreeRTOS Wrapper
 
-
-### TODO:
-- [x] Make CRC flag sticky: Invert meaning to CRC_ERR. Failure 1 sticks until writing 0
 
 ### Testing
 
