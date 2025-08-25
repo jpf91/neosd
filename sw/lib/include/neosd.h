@@ -7,7 +7,9 @@
 extern "C" {
 #endif
 
-    #define NEOSD_BASE   (0xFFD20000U)
+    #ifndef NEOSD_BASE
+        #define NEOSD_BASE   (0xFFD20000U)
+    #endif
 
     typedef volatile struct __attribute__((packed,aligned(4))) {
         uint32_t CTRL;     // NEOSD_CTRL_enum
