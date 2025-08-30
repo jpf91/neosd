@@ -216,12 +216,21 @@ async def init_test(dut):
 
 async def configure_peripheral(dut, wbs, idleClk, d4Mode = True):
     # CDIV = 4, D4MODE
-    cfg = 0b0_001_0_0_1
+    # RST
+    cfg = (0b0 << 0)
     if (idleClk):
-        cfg = cfg | 0b10000000
+        cfg = cfg | 0b1000
     if (d4Mode):
-        cfg = cfg | 0b1000000
-    await wbs.send_cycle([WBOp(0x0, cfg), WBOp(0x0)])
+        cfg = cfg | 0b10
+    # prsc
+    cfg = cfg | (0b001 << 4)
+    # hs
+    cfg = cfg | (0b0 << 5)
+    # cdiv
+    cfg = cfg | (0b0000 << 8)
+
+
+    await wbs.send_cycle([WBOp(0x4, cfg)])
     await ClockCycles(dut.clk, 3)
 
 async def test_fsm_rst_impl(dut, idleClk):
@@ -407,3 +416,43 @@ async def test_write_block_d1(dut):
 @cocotb.test()
 async def test_write_block_d4(dut):
     await test_write_block(dut, True)
+
+@cocotb.test()
+async def test_basic(dut):
+    wbs = await init_test(dut)
+    await configure_peripheral(dut, wbs, False, False)
+
+    # CMDArg 0x10, IDX=0b101010 CRC=1110011 SHORT Response, DATA WRITE, COMMIT
+    cmd = 0
+    # Commit
+    cmd = cmd | 0b1
+    # DMODE
+    cmd = cmd | (0b0 << 4)
+    # RMODE: short
+    cmd = cmd | (1 << 6)
+    # CRC
+    cmd = cmd | (0b1110011 << 16)
+    # IDX
+    cmd = cmd | (0b101010 << 24)
+
+    await wbs.send_cycle([WBOp(0x8, 42), WBOp(0xC, cmd)])
+    await ClockCycles(dut.clk, 64*8)
+
+    # Read the response
+    dut.sd_cmd_i.value = 0
+    await ClockCycles(dut.clk, 17*8)
+    # Read flag reg, then read rdata reg
+    await wbs.send_cycle([WBOp(0x4), WBOp(0x14)])
+
+    await ClockCycles(dut.clk, 64*8)
+    await wbs.send_cycle([WBOp(0x4), WBOp(0x14)])
+
+    await ClockCycles(dut.clk, 64*8)
+    await wbs.send_cycle([WBOp(0x4), WBOp(0x14)])
+
+@cocotb.test()
+async def test_idle(dut):
+    wbs = await init_test(dut)
+    await configure_peripheral(dut, wbs, True, False)
+
+    await ClockCycles(dut.clk, 64*8)
