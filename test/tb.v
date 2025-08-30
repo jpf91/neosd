@@ -29,9 +29,19 @@ module tb ();
     wire sd_cmd_o;
     wire sd_cmd_i;
     wire sd_cmd_oe;
+    wire[3:0] sd_dat_o, sd_dat_i, sd_dat_oe;
     wire sd_dat0_o, sd_dat1_o, sd_dat2_o, sd_dat3_o;
     wire sd_dat0_i, sd_dat1_i, sd_dat2_i, sd_dat3_i;
     wire sd_dat0_oe, sd_dat1_oe, sd_dat2_oe, sd_dat3_oe;
+    assign sd_dat_i = {sd_dat3_i, sd_dat2_i, sd_dat1_i, sd_dat0_i};
+    assign sd_dat0_o = sd_dat_o[0];
+    assign sd_dat1_o = sd_dat_o[1];
+    assign sd_dat2_o = sd_dat_o[2];
+    assign sd_dat3_o = sd_dat_o[3];
+    assign sd_dat0_oe = sd_dat_oe[0];
+    assign sd_dat1_oe = sd_dat_oe[1];
+    assign sd_dat2_oe = sd_dat_oe[2];
+    assign sd_dat3_oe = sd_dat_oe[3];
 
     neosd dut (
         .clk_i(clk),
@@ -54,18 +64,9 @@ module tb ();
         .sd_cmd_o(sd_cmd_o),
         .sd_cmd_i(sd_cmd_i),
         .sd_cmd_oe(sd_cmd_oe),
-        .sd_dat0_o(sd_dat0_o),
-        .sd_dat1_o(sd_dat1_o),
-        .sd_dat2_o(sd_dat2_o),
-        .sd_dat3_o(sd_dat3_o),
-        .sd_dat0_i(sd_dat0_i),
-        .sd_dat1_i(sd_dat1_i),
-        .sd_dat2_i(sd_dat2_i),
-        .sd_dat3_i(sd_dat3_i),
-        .sd_dat0_oe(sd_dat0_oe),
-        .sd_dat1_oe(sd_dat1_oe),
-        .sd_dat2_oe(sd_dat2_oe),
-        .sd_dat3_oe(sd_dat3_oe)
+        .sd_dat_o(sd_dat_o),
+        .sd_dat_i(sd_dat_i),
+        .sd_dat_oe(sd_dat_oe)
     );
 
 endmodule
