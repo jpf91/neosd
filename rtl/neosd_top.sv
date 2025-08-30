@@ -12,6 +12,9 @@ module neosd (
     output reg wb_ack_o,
     output reg[31:0] wb_dat_o,
 
+    output irq_o,
+    output flag_data_o,
+
     // SD Card Signals
     output sd_clk_o,
     output sd_cmd_o,
@@ -366,6 +369,15 @@ module neosd (
             endcase
         end
     end
+
+    // Interrupts
+    assign irq_o = (CTRL_FLAG_BLK_DONE & CTRL_MASK_BLK_DONE) |
+        (CTRL_FLAG_CMD_DONE & CTRL_MASK_CMD_DONE) |
+        (CTRL_FLAG_CMD_RESP & CTRL_MASK_CMD_RESP) |
+        (CTRL_FLAG_DAT_DATA & CTRL_MASK_DAT_DATA) |
+        (CTRL_FLAG_DAT_DONE & CTRL_MASK_DAT_DONE);
+    
+    assign flag_data_o = CTRL_FLAG_DAT_DATA;
 
     logic[7:0] clkgen;
 

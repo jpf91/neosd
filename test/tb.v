@@ -22,6 +22,8 @@ module tb ();
     wire wb_ack_o;
     wire wb_err_o;
     wire[31:0] wb_dat_o;
+    wire irq_o;
+    wire flag_data_o;
 
     wire sd_clk_o;
     wire sd_cmd_o;
@@ -44,6 +46,9 @@ module tb ();
     
         .wb_ack_o(wb_ack_o),
         .wb_dat_o(wb_dat_o),
+
+        .irq_o(irq_o),
+        .flag_data_o(flag_data_o),
 
         .sd_clk_o(sd_clk_o),
         .sd_cmd_o(sd_cmd_o),

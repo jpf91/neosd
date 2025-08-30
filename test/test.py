@@ -225,9 +225,11 @@ async def configure_peripheral(dut, wbs, idleClk, d4Mode = True):
     # prsc
     cfg = cfg | (0b001 << 4)
     # hs
-    cfg = cfg | (0b1 << 7)
+    cfg = cfg | (0b0 << 7)
     # cdiv
     cfg = cfg | (0b0000 << 8)
+    # irq mask
+    cfg = cfg | (0b00001 << 22)
 
 
     await wbs.send_cycle([WBOp(0x4, cfg)])
@@ -442,13 +444,13 @@ async def test_basic(dut):
     dut.sd_cmd_i.value = 0
     await ClockCycles(dut.clk, 17*8)
     # Read flag reg, then read rdata reg
-    await wbs.send_cycle([WBOp(0x4), WBOp(0x14)])
+    await wbs.send_cycle([WBOp(0x4), WBOp(0x10)])
 
     await ClockCycles(dut.clk, 64*8)
-    await wbs.send_cycle([WBOp(0x4), WBOp(0x14)])
+    await wbs.send_cycle([WBOp(0x4), WBOp(0x10)])
 
     await ClockCycles(dut.clk, 64*8)
-    await wbs.send_cycle([WBOp(0x4), WBOp(0x14)])
+    await wbs.send_cycle([WBOp(0x4), WBOp(0x10)])
 
 @cocotb.test()
 async def test_idle(dut):
