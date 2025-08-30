@@ -213,29 +213,28 @@ void neosd_read_blocks_stop(size_t offset, size_t num)
     // R1 and maybe data
     while (true)
     {
-        auto irq = NEOSD->IRQ_FLAG;
-        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        auto irq = NEOSD->CTRL;
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_RESP))
         {
             *(rptr--) = NEOSD->RESP;
-            //neorv32_uart0_printf("=> Got CMD response data\n");
+            neorv32_uart0_printf("=> Got CMD response data\n");
         }
-        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
-            //neorv32_uart0_printf("=> CMD response is done\n");
-            //NEOSD_DEBUG_R1(&resp.rshort);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_CMD_DONE);
+            neorv32_uart0_printf("=> CMD response is done\n");
+            NEOSD_DEBUG_R1(&resp.rshort);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DATA))
         {
             auto data = NEOSD->DATA;
             neorv32_uart0_printf("=> Data: %x\n", data);
             //neorv32_uart0_printf(".");
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        if (irq & (1 << NEOSD_CTRL_FLAG_BLK_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
-            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (NEOSD->STAT & (1 << NEOSD_STAT_CRCERR)) ? "fail" : "ok");
-            NEOSD->STAT = 0;
+            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (irq & (1 << NEOSD_CTRL_CRCERR)) ? "fail" : "ok");
+            NEOSD->CTRL &= ~((1 << NEOSD_CTRL_FLAG_BLK_DONE) | (1 << NEOSD_CTRL_CRCERR));
 
             if (++blocks == num)
             {
@@ -244,41 +243,49 @@ void neosd_read_blocks_stop(size_t offset, size_t num)
                 neosd_cmd_commit((SD_CMD_IDX)12, 0, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE, true);
             }
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
-            //neorv32_uart0_printf("=> DAT response is done\n");
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_DAT_DONE);
+            neorv32_uart0_printf("=> DAT response is done\n");
             break;
         }
     }
 
     // FIXME: Wait till data and CMD is idle
+    // Note: As we send the stop with NEOSD_DMODE_NONE, there's no data response here
+    neorv32_uart0_printf("=> Waiting for stop\n");
     while (true)
     {
-        auto irq = NEOSD->IRQ_FLAG;
-        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        auto irq = NEOSD->CTRL;
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_RESP))
         {
             *(rptr--) = NEOSD->RESP;
-            //neorv32_uart0_printf("=> Got CMD response data\n");
+            neorv32_uart0_printf("=> Got CMD response data\n");
         }
-        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_CMD_DONE);
+            neorv32_uart0_printf("=> CMD response is done\n");
+            NEOSD_DEBUG_R1(&resp.rshort);
             break;
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DATA))
         {
             auto data = NEOSD->DATA;
+            neorv32_uart0_printf("=> Data: %x\n", data);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        if (irq & (1 << NEOSD_CTRL_FLAG_BLK_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
+            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (irq & (1 << NEOSD_CTRL_CRCERR)) ? "fail" : "ok");
+            NEOSD->CTRL &= ~((1 << NEOSD_CTRL_FLAG_BLK_DONE) | (1 << NEOSD_CTRL_CRCERR));
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_DAT_DONE);
+            neorv32_uart0_printf("=> DAT response is done\n");
         }
     }
+
 }
 
 bool neosd_read_blocks_23(size_t offset, size_t num)
@@ -305,40 +312,39 @@ bool neosd_read_blocks_23(size_t offset, size_t num)
     // R1 and maybe data
     while (true)
     {
-        auto irq = NEOSD->IRQ_FLAG;
-        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        auto irq = NEOSD->CTRL;
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_RESP))
         {
             *(rptr--) = NEOSD->RESP;
             //neorv32_uart0_printf("=> Got CMD response data\n");
         }
-        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_CMD_DONE);
             //neorv32_uart0_printf("=> CMD response is done\n");
             //NEOSD_DEBUG_R1(&resp.rshort);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DATA))
         {
             auto data = NEOSD->DATA;
             //neorv32_uart0_printf(".");
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        if (irq & (1 << NEOSD_CTRL_FLAG_BLK_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
-            //neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (irq & (1 << NEOSD_STAT_CRCOK)) ? "ok" : "fail");
+            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (irq & (1 << NEOSD_CRC_ERR)) ? "fail" : "ok");
+            NEOSD->CTRL &= ~((1 << NEOSD_CTRL_FLAG_BLK_DONE) | (1 << NEOSD_CTRL_CRCERR));
 
             if (++blocks == num)
             {
                 // CMD12 STOP_TRANSMISSION
                 // neorv32_uart0_printf("=> Sending CMD12 STOP_TRANSMISSION\n");
-                NEOSD->CMD = (1 << NEOSD_CMD_LAST_BLOCK);
+                NEOSD->CMD = (1 << NEOSD_CMD_ABRT_DAT);
             }
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_DAT_DONE);
             //neorv32_uart0_printf("=> DAT response is done\n");
-            break;
         }
     }
 
@@ -358,34 +364,32 @@ bool neosd_read_block(size_t offset)
     // R1 and maybe data
     while (true)
     {
-        auto irq = NEOSD->IRQ_FLAG;
-        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        auto irq = NEOSD->CTRL;
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_RESP))
         {
             *(rptr--) = NEOSD->RESP;
             //neorv32_uart0_printf("=> Got CMD response data\n");
         }
-        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_CMD_DONE);
             //neorv32_uart0_printf("=> CMD response is done\n");
             //NEOSD_DEBUG_R1(&resp.rshort);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DATA))
         {
             auto data = NEOSD->DATA;
             //neorv32_uart0_printf(".");
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        if (irq & (1 << NEOSD_CTRL_FLAG_BLK_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
-            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (NEOSD->STAT & (1 << NEOSD_STAT_CRCERR)) ? "fail" : "ok");
-            NEOSD->STAT = 0;
-
-            NEOSD->CMD = (1 << NEOSD_CMD_LAST_BLOCK);
+            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (NEOSD->CTRL & (1 << NEOSD_CTRL_CRCERR)) ? "fail" : "ok");
+            NEOSD->CTRL &= ~((1 << NEOSD_CTRL_FLAG_BLK_DONE) | (1 << NEOSD_CTRL_CRCERR));
+            NEOSD->CMD = (1 << NEOSD_CMD_ABRT_DAT);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_DAT_DONE);
             //neorv32_uart0_printf("=> DAT response is done\n");
             break;
         }
@@ -415,9 +419,9 @@ bool neosd_set_data_mode(bool d4mode)
     //NEOSD_DEBUG_R1(&resp.rshort);
 
     if (d4mode)
-        NEOSD->CTRL |= (1 << NEOSD_CTRL_D4BIT);
+        NEOSD->CTRL |= (1 << NEOSD_CTRL_D4);
     else
-        NEOSD->CTRL &= ~(1 << NEOSD_CTRL_D4BIT);
+        NEOSD->CTRL &= ~(1 << NEOSD_CTRL_D4);
 
     return true;
 }
@@ -436,19 +440,19 @@ bool neosd_write_block(size_t offset)
     // R1 and write data
     while (true)
     {
-        auto irq = NEOSD->IRQ_FLAG;
-        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        auto irq = NEOSD->CTRL;
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_RESP))
         {
             *(rptr--) = NEOSD->RESP;
             neorv32_uart0_printf("=> Got CMD response data\n");
         }
-        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_CMD_RESP);
             neorv32_uart0_printf("=> CMD response is done\n");
             NEOSD_DEBUG_R1(&resp.rshort);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DATA))
         {
             if (data < 128)
             {
@@ -457,17 +461,15 @@ bool neosd_write_block(size_t offset)
                 data++;
             }
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        if (irq & (1 << NEOSD_CTRL_FLAG_BLK_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
-            neorv32_uart0_printf("=> Finished a block. CRC sticky is %s\n", (NEOSD->STAT & (1 << NEOSD_STAT_CRCERR)) ? "err" : "ok");
-            neorv32_uart0_printf("=> Finished a block. CRC status is %s\n", (irq & (1 << 5)) ? "ok" : "err");
-            NEOSD->STAT = 0;
-            NEOSD->CMD = (1 << NEOSD_CMD_LAST_BLOCK);
+            neorv32_uart0_printf("=> Finished a block. CRC sticky is %s\n", (NEOSD->CTRL & (1 << NEOSD_CTRL_CRCERR)) ? "err" : "ok");
+            NEOSD->CTRL &= ~((1 << NEOSD_CTRL_FLAG_BLK_DONE) | (1 << NEOSD_CTRL_CRCERR));
+            NEOSD->CMD = (1 << NEOSD_CMD_ABRT_DAT);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_DAT_DONE);
             neorv32_uart0_printf("=> DAT response is done\n");
             break;
         }
@@ -492,19 +494,19 @@ void neosd_write_blocks_stop(size_t offset, size_t num)
     // R1 and maybe data
     while (true)
     {
-        auto irq = NEOSD->IRQ_FLAG;
-        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        auto irq = NEOSD->CTRL;
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_RESP))
         {
             *(rptr--) = NEOSD->RESP;
             neorv32_uart0_printf("=> Got CMD response data\n");
         }
-        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_CMD_DONE);
             neorv32_uart0_printf("=> CMD response is done\n");
             NEOSD_DEBUG_R1(&resp.rshort);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DATA))
         {
             if (data < 128 * num)
             {
@@ -513,52 +515,57 @@ void neosd_write_blocks_stop(size_t offset, size_t num)
                 data++;
             }
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        if (irq & (1 << NEOSD_CTRL_FLAG_BLK_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
-            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (NEOSD->STAT & (1 << NEOSD_STAT_CRCERR)) ? "fail" : "ok");
-            NEOSD->STAT = 0;
+            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (irq & (1 << NEOSD_CTRL_CRCERR)) ? "fail" : "ok");
+            NEOSD->CTRL &= ~((1 << NEOSD_CTRL_FLAG_BLK_DONE) | (1 << NEOSD_CTRL_CRCERR));
 
             if (++blocks == num)
             {
                 // CMD12 STOP_TRANSMISSION
                 neorv32_uart0_printf("=> Sending CMD12 STOP_TRANSMISSION\n");
-                neosd_cmd_commit((SD_CMD_IDX)12, 0, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE, true);
+                neosd_cmd_commit((SD_CMD_IDX)12, 0, NEOSD_RMODE_SHORT, NEOSD_DMODE_BUSY, true);
             }
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_DAT_DONE);
             neorv32_uart0_printf("=> DAT response is done\n");
             break;
         }
     }
 
+    neorv32_uart0_printf("=> Waiting for stop\n");
     // FIXME: Wait till data and CMD is idle
     while (true)
     {
-        auto irq = NEOSD->IRQ_FLAG;
-        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        auto irq = NEOSD->CTRL;
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_RESP))
         {
             *(rptr--) = NEOSD->RESP;
-            //neorv32_uart0_printf("=> Got CMD response data\n");
+            neorv32_uart0_printf("=> Got CMD response data\n");
         }
-        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
-            break;
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_CMD_DONE);
+            neorv32_uart0_printf("=> CMD response is done\n");
+            NEOSD_DEBUG_R1(&resp.rshort);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DATA))
         {
             auto data = NEOSD->DATA;
+            neorv32_uart0_printf("=> Data: %x\n", data);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        if (irq & (1 << NEOSD_CTRL_FLAG_BLK_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_BLK_DONE);
+            neorv32_uart0_printf("=> BLK is done\n");
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_DAT_DONE);
+            neorv32_uart0_printf("=> DAT response is done\n");
+            break;
         }
     }
 }
@@ -587,38 +594,37 @@ bool neosd_write_blocks_23(size_t offset, size_t num)
     // R1 and maybe data
     while (true)
     {
-        auto irq = NEOSD->IRQ_FLAG;
-        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        auto irq = NEOSD->CTRL;
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_RESP))
         {
             *(rptr--) = NEOSD->RESP;
             neorv32_uart0_printf("=> Got CMD response data\n");
         }
-        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_CMD_DONE);
             neorv32_uart0_printf("=> CMD response is done\n");
             NEOSD_DEBUG_R1(&resp.rshort);
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DATA))
         {
             NEOSD->DATA = 0xFFFFFFFF;
             neorv32_uart0_printf("DATA \n");
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+        if (irq & (1 << NEOSD_CTRL_FLAG_BLK_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
-            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (NEOSD->STAT & (1 << NEOSD_STAT_CRCERR)) ? "fail" : "ok");
-            NEOSD->STAT = 0;
+            neorv32_uart0_printf("=> Finished a block. CRC is %s\n", (NEOSD->CTRL & (1 << NEOSD_CTRL_CRCERR)) ? "fail" : "ok");
+            NEOSD->CTRL &= ~((1 << NEOSD_CTRL_FLAG_BLK_DONE) | (1 << NEOSD_CTRL_CRCERR));
 
             if (++blocks == num)
             {
                 neorv32_uart0_printf("=> Last block done. Setting stop\n");
-                NEOSD->CMD = (1 << NEOSD_CMD_LAST_BLOCK);
+                NEOSD->CMD = (1 << NEOSD_CMD_ABRT_DAT);
             }
         }
-        if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_DAT_DONE);
             neorv32_uart0_printf("=> DAT response is done\n");
             break;
         }
@@ -642,7 +648,7 @@ int test_data_read()
     }
 
     neosd_wait_idle();
-    NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+    NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_DAT_DONE);
     NEOSD_DEBUG_MSG("NEOSD: Got response\n");
     NEOSD_DEBUG_R1(&resp.rshort);
 
@@ -665,9 +671,7 @@ int test_data_read()
 
     // Increase clock rate
     NEOSD_DEBUG_MSG("NEOSD: Increasing Clock Rate\n");
-    uint32_t ctrl = NEOSD->CTRL;
-    ctrl &= ~(CLK_PRSC_8 << NEOSD_CTRL_CDIV0);
-    NEOSD->CTRL = ctrl | (CLK_PRSC_2 << NEOSD_CTRL_CDIV0);
+    neosd_set_clock(CLK_PRSC_8, 0, false);
 
 
 
@@ -753,7 +757,7 @@ int main()
 
     neosd_setup(CLK_PRSC_1024, 0, 0);
     //neosd_set_idle_clk(true);
-    neorv32_uart0_printf("NEOSD: Controller initialized\n");
+    neorv32_uart0_printf("NEOSD: Controller initialized: %x\n", NEOSD->INFO);
 
     sd_card_t info;
     switch (neosd_card_init(&info))
