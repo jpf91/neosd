@@ -81,11 +81,8 @@ extern "C" {
     **************************************************************************/
     void neosd_setup(int prsc, int cdiv, uint32_t irq_mask)
     {
-        // Instead of neosd_reset, clear the register fully
-        NEOSD->CTRL = (1 << NEOSD_CTRL_RST);
-
-        // setup prsc and enable
-        NEOSD->CTRL = (prsc << NEOSD_CTRL_CDIV0) | (1 << NEOSD_CTRL_EN);
+        // setup prsc and cdiv
+        NEOSD->CTRL = (prsc << NEOSD_CTRL_PRSC0) | (cdiv << NEOSD_CTRL_CDIV0);
     }
 
     /**********************************************************************//**
@@ -97,7 +94,7 @@ extern "C" {
     {
         return 0;
 
-    // FIXME: Implement PRSRC ad CDIV in HW
+    // FIXME: Implement and test
     #if 0
         const uint16_t PRSC_LUT[8] = {2, 4, 8, 64, 128, 1024, 2048, 4096};
 
@@ -117,29 +114,12 @@ extern "C" {
     * @note Ensure the SD FSMs are idle by checking neosd_busy() before
     * calling this.
     **************************************************************************/
-    void neosd_set_clock_div(int prsc, int cdiv)
+    void neosd_set_clock(int prsc, int cdiv, bool hs)
     {
-        // FIXME: CDIV
         uint32_t ctrl = NEOSD->CTRL;
-        ctrl &= ~(0b111 << NEOSD_CTRL_CDIV0);
-        ctrl |= (prsc << NEOSD_CTRL_CDIV0);
+        ctrl &= ~((0b111 << NEOSD_CTRL_PRSC0) | (0b1111 << NEOSD_CTRL_CDIV0) | (0b1 << NEOSD_CTRL_HS));
+        ctrl |= (prsc << NEOSD_CTRL_PRSC0) | (cdiv << NEOSD_CTRL_CDIV0) | (hs << NEOSD_CTRL_HS);
         NEOSD->CTRL = ctrl;
-    }
-
-    /**********************************************************************//**
-    * Disable the neosd controller.
-    **************************************************************************/
-    void neosd_disable()
-    {
-        NEOSD->CTRL &= ~(1 << NEOSD_CTRL_EN);
-    }
-
-    /**********************************************************************//**
-    * Enable the neosd controller.
-    **************************************************************************/
-    void neosd_enable()
-    {
-        NEOSD->CTRL |= (1 << NEOSD_CTRL_EN);
     }
 
     /**********************************************************************//**
@@ -148,9 +128,9 @@ extern "C" {
     void neosd_set_idle_clk(bool active)
     {
         if (active)
-            NEOSD->CTRL |= (1 << NEOSD_CTRL_IDLE_CLK);
+            NEOSD->CTRL |= (1 << NEOSD_CTRL_IDLE_SDCLK);
         else
-            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_IDLE_CLK);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_IDLE_SDCLK);
     }
 
     /**********************************************************************//**
@@ -189,7 +169,7 @@ extern "C" {
     **************************************************************************/
     int neosd_busy()
     {
-        return NEOSD->STAT & ((1 << NEOSD_STAT_IDLE_CMD) | (1 << NEOSD_STAT_IDLE_DAT));
+        return (NEOSD->CTRL & ((1 << NEOSD_CTRL_CMD_BUSY) | (1 << NEOSD_CTRL_DAT_BUSY))) >> NEOSD_CTRL_DAT_BUSY;
     }
 
     /**********************************************************************//**
@@ -197,7 +177,7 @@ extern "C" {
     **************************************************************************/
     void neosd_cmd_commit(SD_CMD_IDX cmd, uint32_t arg, NEOSD_RMODE rmode, NEOSD_DMODE dmode, bool stopDAT)
     {
-        uint32_t stopBit = stopDAT ? (1 << NEOSD_CMD_LAST_BLOCK) : 0;
+        uint32_t stopBit = stopDAT ? (1 << NEOSD_CMD_ABRT_DAT) : 0;
         NEOSD->CMDARG = arg;
         NEOSD->CMD = (1 << NEOSD_CMD_COMMIT) | (dmode << NEOSD_CMD_DMODE0) |
             (rmode << NEOSD_CMD_RMODE0) | (cmd << NEOSD_CMD_IDX_LSB) |

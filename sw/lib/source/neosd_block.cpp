@@ -30,13 +30,11 @@ void neosd_reset()
 {
     neosd_begin_reset();
     while(neosd_busy()) {}
-    // Clear IRQ flags
-    NEOSD->IRQ_FLAG &= ~((1 << NEOSD_IRQ_CMD_DONE) | (1 << NEOSD_IRQ_DAT_DONE) | (1 << NEOSD_IRQ_DAT_BLOCK));
     // Clear data irq flags
     NEOSD->RESP;
     NEOSD->DATA;
-    // Clear CRC sticky bit
-    NEOSD->STAT &= ~(1 << NEOSD_STAT_CRCERR);
+    // Clear IRQ flags and CRC sticky bit
+    NEOSD->CTRL &= ~((1 << NEOSD_CTRL_FLAG_CMD_DONE) | (1 << NEOSD_CTRL_FLAG_DAT_DONE) | (1 << NEOSD_CTRL_FLAG_BLK_DONE) | (1 << NEOSD_CTRL_CRCERR));
     neosd_end_reset();
 }
 
@@ -58,12 +56,12 @@ bool neosd_cmd_wait_res(neosd_res_t* res, uint32_t rtimeout)
             return false;
         }
 
-        auto irq = NEOSD->IRQ_FLAG;
-        if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+        auto irq = NEOSD->CTRL;
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_RESP))
             *(rptr--) = NEOSD->RESP;
-        if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+        if (irq & (1 << NEOSD_CTRL_FLAG_CMD_DONE))
         {
-            NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_CMD_DONE);
             break;
         }
     }

@@ -12,52 +12,65 @@ extern "C" {
     #endif
 
     typedef volatile struct __attribute__((packed,aligned(4))) {
-        uint32_t CTRL;     // NEOSD_CTRL_enum
-        uint32_t STAT;     // unused
-        uint32_t IRQ_FLAG; // NEOSD_IRQ_enum
-        uint32_t IRQ_MASK; // NEOSD_IRQ_enum
-        uint32_t CMDARG;   // 32 Bit CMD Argument
-        uint32_t CMD;      // 
+        uint32_t INFO;
+        uint32_t CTRL;
+        uint32_t CMDARG;
+        uint32_t CMD;
         uint32_t RESP;
         uint32_t DATA;
     } neosd_t;
 
-    enum NEOSD_CTRL_enum {
-        NEOSD_CTRL_EN            =  0,
-        NEOSD_CTRL_RST           =  1,
-        NEOSD_CTRL_ABRT          =  2,
-        NEOSD_CTRL_CDIV0         =  3, // actually PRSCL
-        NEOSD_CTRL_CDIV1         =  4,
-        NEOSD_CTRL_CDIV2         =  5,
-        NEOSD_CTRL_D4BIT         =  6,
-        NEOSD_CTRL_IDLE_CLK      =  7,
+    enum NEOSD_INFO {
+        NEOSD_INFO_PATCH         =  0,
+        NEOSD_INFO_MINOR         =  4,
+        NEOSD_INFO_MAJOR         =  8,
+        NEOSD_INFO_MAGIC         =  16,
     };
 
-    enum NEOSD_IRQ_enum {
-        NEOSD_IRQ_CMD_DONE       =  0,
-        NEOSD_IRQ_CMD_RESP       =  1,
-        NEOSD_IRQ_DAT_DONE       =  2,
-        NEOSD_IRQ_DAT_DATA       =  3,
-        NEOSD_IRQ_DAT_BLOCK      =  4,
+    #define NEOSD_MAGIC 0xE05D
+
+    enum NEOSD_CTRL {
+        NEOSD_CTRL_RST           =  0,
+        NEOSD_CTRL_D4            =  1,
+        NEOSD_CTRL_IDLE_SDCLK    =  3,
+        NEOSD_CTRL_PRSC0         =  4,
+        NEOSD_CTRL_PRSC1         =  5,
+        NEOSD_CTRL_PRSC2         =  6,
+        NEOSD_CTRL_HS            =  7,
+        NEOSD_CTRL_CDIV0         =  8,
+        NEOSD_CTRL_CDIV1         =  9,
+        NEOSD_CTRL_CDIV2         =  10,
+        NEOSD_CTRL_CDIV3         =  11,
+        NEOSD_CTRL_DAT_BUSY      =  12,
+        NEOSD_CTRL_CMD_BUSY      =  13,
+        NEOSD_CTRL_CRCERR        =  14,
+        
+        NEOSD_CTRL_FLAG_CMD_RESP =  16,
+        NEOSD_CTRL_FLAG_DAT_DATA =  17,
+        NEOSD_CTRL_FLAG_CMD_DONE =  18,
+        NEOSD_CTRL_FLAG_DAT_DONE =  19,
+        NEOSD_CTRL_FLAG_BLK_DONE =  20,
+
+        NEOSD_CTRL_MASK_CMD_RESP =  22,
+        NEOSD_CTRL_MASK_DAT_DATA =  23,
+        NEOSD_CTRL_MASK_CMD_DONE =  24,
+        NEOSD_CTRL_MASK_DAT_DONE =  25,
+        NEOSD_CTRL_MASK_BLK_DONE =  26,
     };
 
-    enum NEOSD_STAT_enum {
-        NEOSD_STAT_IDLE_CMD       =  0,
-        NEOSD_STAT_IDLE_DAT       =  1,
-        NEOSD_STAT_CRCERR         =  2,
-    };
-
-    enum NEOSD_CMD_enum {
+    enum NEOSD_CMD {
         NEOSD_CMD_COMMIT          =  0,
-        NEOSD_CMD_LAST_BLOCK      =  1,
-        NEOSD_CMD_DMODE0          =  2,
-        NEOSD_CMD_DMODE1          =  3,
-        NEOSD_CMD_RMODE0          =  4,
-        NEOSD_CMD_RMODE1          =  5,
-        NEOSD_CMD_CRC_LSB         =  8,
-        NEOSD_CMD_CRC_MSB         =  14,
-        NEOSD_CMD_IDX_LSB         =  16,
-        NEOSD_CMD_IDX_MSB         =  21
+        NEOSD_CMD_ABRT_DAT        =  1,
+        
+        NEOSD_CMD_DMODE0          =  4,
+        NEOSD_CMD_DMODE1          =  5,
+        NEOSD_CMD_RMODE0          =  6,
+        NEOSD_CMD_RMODE1          =  7,
+
+        NEOSD_CMD_CRC_LSB         =  16,
+        NEOSD_CMD_CRC_MSB         =  22,
+        NEOSD_CMD_IDX_LSB         =  24,
+        NEOSD_CMD_IDX_MSB         =  29
     };
 
     enum NEOSD_RMODE {
@@ -200,9 +213,7 @@ extern "C" {
     // Generic driver functions
     void neosd_setup(int prsc, int cdiv, uint32_t irq_mask);
     uint32_t neosd_get_clock_speed();
-    void neosd_set_clock_div(int prsc, int cdiv);
-    void neosd_disable();
-    void neosd_enable();
+    void neosd_set_clock(int prsc, int cdiv, bool hs);
     void neosd_begin_reset();
     void neosd_end_reset();
     void neosd_set_idle_clk(bool active);

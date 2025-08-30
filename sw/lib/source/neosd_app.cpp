@@ -224,9 +224,9 @@ extern "C" {
         NEOSD_DEBUG_R1(&resp.rshort);
 
         if (d4mode)
-            NEOSD->CTRL |= (1 << NEOSD_CTRL_D4BIT);
+            NEOSD->CTRL |= (1 << NEOSD_CTRL_D4);
         else
-            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_D4BIT);
+            NEOSD->CTRL &= ~(1 << NEOSD_CTRL_D4);
 
         return true;
     }
@@ -245,29 +245,29 @@ extern "C" {
         // R1 and maybe data
         while (true)
         {
-            auto irq = NEOSD->IRQ_FLAG;
+            auto irq = NEOSD->CTRL;
 
-            if (irq & (1 << NEOSD_IRQ_CMD_RESP))
+            if (irq & (1 << NEOSD_CTRL_FLAG_CMD_RESP))
                 *(rptr--) = NEOSD->RESP;
 
-            if (irq & (1 << NEOSD_IRQ_CMD_DONE))
+            if (irq & (1 << NEOSD_CTRL_FLAG_CMD_DONE))
             {
-                NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_CMD_DONE);
+                NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_CMD_DONE);
                 NEOSD_DEBUG_R1(&resp.rshort);
             }
 
-            if (irq & (1 << NEOSD_IRQ_DAT_DATA))
+            if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DATA))
                 *(dptr++) = NEOSD->DATA;
 
-            if (irq & (1 << NEOSD_IRQ_DAT_BLOCK))
+            if (irq & (1 << NEOSD_CTRL_FLAG_BLK_DONE))
             {
-                NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_BLOCK);
-                NEOSD->CMD = (1 << NEOSD_CMD_LAST_BLOCK);
+                NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_BLK_DONE);
+                NEOSD->CMD = (1 << NEOSD_CMD_ABRT_DAT);
             }
 
-            if (irq & (1 << NEOSD_IRQ_DAT_DONE))
+            if (irq & (1 << NEOSD_CTRL_FLAG_DAT_DONE))
             {
-                NEOSD->IRQ_FLAG &= ~(1 << NEOSD_IRQ_DAT_DONE);
+                NEOSD->CTRL &= ~(1 << NEOSD_CTRL_FLAG_DAT_DONE);
                 break;
             }
         }
