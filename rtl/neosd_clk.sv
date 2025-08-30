@@ -20,25 +20,26 @@ module neosd_clk (
     assign sd_clk_en_o = (|sd_clk_req_i) // requested
         && !(|sd_clk_stall_i); // and not stalled
 
-    logic sd_clk_div;
-    logic sd_clk_div_last;
-    // Divided clock used to generate sd_clk_o
-    assign sd_clk_div = clkgen_i[sd_clksel_i];
-    // Divided clock used to sample / output data signals
-    logic clkstrb_tmp;
-    assign clkstrb_tmp = sd_clk_div & sd_clk_div_last; 
+    logic sd_clk_strb;
+    logic sd_clk_cont;
+
+    // Strobe used to generate sd_clk_o
+    assign sd_clk_strb = clkgen_i[sd_clksel_i];
 
     always @(posedge clk_i or negedge rstn_i) begin
         if (rstn_i == 1'b0) begin
             sd_clk_o <= 1'b0;
-            sd_clk_div_last <= 1'b0;
+            sd_clk_cont <= 1'b0;
         end else begin
-            // sd_clk_div_last is delayed one cycle. So delay clkstrb_tmp here to really match falling edge
-            clkstrb_o <= clkstrb_tmp;
-            if (sd_clk_div == 1'b1) begin
-                sd_clk_div_last <= !sd_clk_div_last;
+            // Divided clock used to sample / output data signals
+            clkstrb_o <= sd_clk_strb & sd_clk_cont;
+
+            if (sd_clk_strb == 1'b1) begin
+                // Generate this all the time to derive clkstrb_o
+                sd_clk_cont <= !sd_clk_cont;
+                // The clock to the SD Card is gated
                 if (sd_clk_en_o == 1'b1)
-                    sd_clk_o <= !sd_clk_div_last;
+                    sd_clk_o <= !sd_clk_cont;
                 else
                     sd_clk_o <= 1'b0;
             end
