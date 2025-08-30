@@ -755,9 +755,14 @@ int main()
     neorv32_uart0_setup(BAUD_RATE, 0);
     neorv32_uart0_puts("Test program booted\n");
 
-    neosd_setup(CLK_PRSC_1024, 0, 0);
+    neosd_version_t ver;
+    if (!neosd_setup(CLK_PRSC_1024, 0, &ver))
+    {
+        neorv32_uart0_printf("NEOSD: Controller not found. Stopping\n");
+        return -1;
+    }
     //neosd_set_idle_clk(true);
-    neorv32_uart0_printf("NEOSD: Controller initialized: %x\n", NEOSD->INFO);
+    neorv32_uart0_printf("NEOSD: Controller initialized. Version: %d.%d.%d\n", ver.major, ver.minor, ver.patch);
 
     sd_card_t info;
     switch (neosd_card_init(&info))

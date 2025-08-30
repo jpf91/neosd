@@ -210,8 +210,12 @@ extern "C" {
     uint8_t neosd_rlong_crc(neosd_r2_t* data);
     bool neosd_rlong_check(neosd_r2_t* data);
 
+    typedef struct {
+        uint8_t major, minor, patch;
+    } neosd_version_t;
+
     // Generic driver functions
-    void neosd_setup(int prsc, int cdiv, uint32_t irq_mask);
+    bool neosd_setup(int prsc, int cdiv, neosd_version_t* ver);
     uint32_t neosd_get_clock_speed();
     void neosd_set_clock(int prsc, int cdiv, bool hs);
     void neosd_begin_reset();

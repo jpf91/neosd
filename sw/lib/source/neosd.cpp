@@ -79,10 +79,20 @@ extern "C" {
     /**********************************************************************//**
     * Initial setup for the SD module.
     **************************************************************************/
-    void neosd_setup(int prsc, int cdiv, uint32_t irq_mask)
+    bool neosd_setup(int prsc, int cdiv, neosd_version_t* ver)
     {
+        auto info = NEOSD->INFO;
+
+        if ((info >> NEOSD_INFO_MAGIC) != NEOSD_MAGIC)
+            return false;
+
+        ver->major = (info >> NEOSD_INFO_MAJOR) & 0xF;
+        ver->minor = (info >> NEOSD_INFO_MINOR) & 0xF;
+        ver->patch = (info >> NEOSD_INFO_PATCH) & 0xF;
+
         // setup prsc and cdiv
         NEOSD->CTRL = (prsc << NEOSD_CTRL_PRSC0) | (cdiv << NEOSD_CTRL_CDIV0);
+        return true;
     }
 
     /**********************************************************************//**
