@@ -1,17 +1,24 @@
 # NeoSD SD Card Controller
 
 This is an SD Card controller with a coding style inspired by the [NEORV32 RISC-V](https://github.com/stnolting/neorv32).
-The IP core has a generic wishbone interface (+ a generic interface for interrupts) so it can be used with any CPU.
-The drivers and the code have been written in a similar style to the NEORV32 though, so it likely integrates best with this CPU.
+The IP core has a generic wishbone interface (+ a generic interface for interrupts) and can be used with any CPU.
+The drivers and the code have been written in a similar style to the NEORV32 though, they integrate best with this CPU.
 
-> **Warning!** This project is still very much WIP and currently lacks documentation.
+> **Warning!** This project is still WIP and currently lacks documentation.
 
 ## Current Status
 
-This project is still very much work in progress.
-Right now there's a working example that can issue commands to an SD card and there's code for the standard SD card initialization.
-Data transfers on the DAT line are not yet implemented though, so you are limited to non-data commands.
-See below for a detailed TODO list.
+The hardware is feature complete and hardware revision `v0.1.0` has been finalized.
+It has been tested on Tang Nano FPGA using the open source toolchains and on 7 series Xilinx FPGAs using proprietary Xilinx tools.
+Some functionality has also been tested in simulation, although the simulation suite is still incomplete.
+
+The driver library is still very rough.
+It currently only supports a blocking API and some edge cases have not been fully implemented or tested (reset after timeout etc).
+It can however be used to read and write data and there's also ready to use code for card initialization.
+There is even a backend for FatFs and reading files from FAT formatted SD Cards is fully supported.
+See the [psoc-sw-player](https://github.com/kit-kch/psoc-sw-player) audio player firmware for details.
+
+Both the hardware and the library currently don't have any documentation, but there are ready-to-use examples available.
 
 ### Hardware
 
@@ -19,7 +26,7 @@ See below for a detailed TODO list.
 - [x] Transmitting SD Commands
 - [x] Receiving Short Responses (R1, R3, R6, R7)
 - [x] Receiving Long Responses (R2)
-- [x] Response Timeout: Handled in Software. SW performs Reset of Controller, Reset not implemented in HW yet.
+- [x] Response Timeout: Handled in Software. SW performs Reset of Controller, Reset is implemented in HW.
 - [x] Reading Commands From Single 32 bit Register
 - [x] Stalling the SD Card Clock When Waiting for CPU to Read Data
 - [x] Clock Arbiter, so Both Command and Data FSM Can Stall Clock
@@ -27,15 +34,15 @@ See below for a detailed TODO list.
 - [x] Busy Response (R1b) Support
 - [x] Single Data Block Read
 - [x] Single Data Block Write
-- [x] Multiple Data Block Read (includes proper Stop CMD Timing)
-- [x] Multiple Data Block Write (includes proper Stop CMD Timing)
+- [x] Multiple Data Block Read (Includes proper Stop CMD Timing)
+- [x] Multiple Data Block Write (Includes proper Stop CMD Timing)
 - [x] 1-Wire Data Transport
 - [x] 4-Wire Data Transport
-- [ ] Interrupt Support
-- [ ] NEORV-like Clock Divider
-- [ ] Independent Data Interrupt Output for DMA
-### Driver
+- [x] Interrupt Support
+- [x] Independent Data Interrupt Output for DMA
+- [x] NEORV-like Clock Divider
 
+### Driver
 - [x] Low-Level Definitions
 - [x] Low-Level Blocking API
 - [x] Application-Level API (Currently limited to blocking API)
@@ -50,12 +57,8 @@ See below for a detailed TODO list.
 - [ ] Extensive Test Cases for Special Cases
 
 - [x] FPGA Test: Intialize SD Card
-
-
-## Future Optimization Ideas
-
-* Do not use separate registers for the data storage and the serdes register:
-  Directly load CMD, CRC and CMDARG into the serdes register. Needs to be 48 bit then.
-  This needs to happen using the main clock then => might have to split load enable / shift enable.
-* Do not use multiple RESP registers but instead split into 32 bit chunks and
-  stall clock until user read it, like with data register.
+- [x] FPGA Test: Read single block
+- [x] FPGA Test: Write single block
+- [x] FPGA Test: Read multiple blocks
+- [x] FPGA Test: Write multiple blocks
+- [x] FPGA Test: FatFs port (reading)
