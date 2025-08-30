@@ -20,7 +20,7 @@ USER_FLAGS += -Wl,--defsym,__neorv32_rom_size=16k
 USER_FLAGS += -Wl,--defsym,__neorv32_ram_size=8k
 
 # Set base address of the NEOSD peripheral
-USER_FLAGS += -D 'NEOSD_BASE=(0xF0000000U)'
+USER_FLAGS += -D 'NEOSD_BASE=(0xF0000000U)' -D NEOSD_DEBUG -D NEOSD_DEBUG_CMDS
 
 # Adjust maximum heap size
 #USER_FLAGS += -Wl,--defsym,__neorv32_heap_size=1k
