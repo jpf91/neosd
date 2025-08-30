@@ -186,7 +186,7 @@ module neosd (
                         wb_dat_o[31:16] <= 16'hE05D;
                         // Version X.Y.Z
                         wb_dat_o[11:8] <= 0;
-                        wb_dat_o[7:4] <= 0;
+                        wb_dat_o[7:4] <= 1;
                         wb_dat_o[3:0] <= 0;
                     end
                     ADDR_CTRL: begin
