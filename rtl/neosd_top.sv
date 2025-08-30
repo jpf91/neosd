@@ -41,7 +41,7 @@ module neosd (
     logic CTRL_RST, CTRL_D4, CTRL_IDLE_SDCLK;
     logic[2:0] CTRL_CLK_PRSC;
     logic[3:0] CTRL_CLK_DIV;
-    logic[2:0] CTRL_CLK_HS;
+    logic CTRL_CLK_HS;
     logic CTRL_STAT_CRCERR;
     logic CTRL_FLAG_CMD_RESP, CTRL_FLAG_DAT_DATA, CTRL_FLAG_CMD_DONE, CTRL_FLAG_DAT_DONE, CTRL_FLAG_BLK_DONE;
     logic CTRL_MASK_CMD_RESP, CTRL_MASK_DAT_DATA, CTRL_MASK_CMD_DONE, CTRL_MASK_DAT_DONE, CTRL_MASK_BLK_DONE;
@@ -382,6 +382,8 @@ module neosd (
         .rstn_i(rstn_i),
         .clkgen_i(clkgen),
         .sd_clksel_i(CTRL_CLK_PRSC),
+        .sd_clkdiv_i(CTRL_CLK_DIV),
+        .sd_clkhs_i(CTRL_CLK_HS),
         .clkstrb_o(clkstrb),
         .sd_clk_req_i({sd_clk_req_cmd, sd_clk_req_dat, CTRL_IDLE_SDCLK}),
         .sd_clk_stall_i({sd_clk_stall_cmd, sd_clk_stall_dat}),

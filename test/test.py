@@ -225,7 +225,7 @@ async def configure_peripheral(dut, wbs, idleClk, d4Mode = True):
     # prsc
     cfg = cfg | (0b001 << 4)
     # hs
-    cfg = cfg | (0b0 << 5)
+    cfg = cfg | (0b1 << 7)
     # cdiv
     cfg = cfg | (0b0000 << 8)
 
