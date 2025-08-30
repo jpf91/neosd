@@ -1,5 +1,7 @@
 #include <neorv32.h>
 #include <neosd.h>
+#include <neosd_app.h>
+#include <neosd_dbg.h>
 
 #define BAUD_RATE 19200
 
@@ -37,7 +39,7 @@ SD_CODE neosd_card_init(sd_card_t* info)
         }
 
             // Send inquiry ACMD41 to get OCR. 4.2.3.1 Initialization Command (ACMD41)
-        switch (neosd_acmd_commit(SD_ACMD41, 0, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE, &status))
+        switch (neosd_acmd_commit(SD_ACMD41, 0, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE, &status, 0, NEOSD_TIMEOUT))
         {
             case NEOSD_CRC_ERR:
                 return NEOSD_CRC_ERR;
@@ -73,7 +75,7 @@ SD_CODE neosd_card_init(sd_card_t* info)
                 return NEOSD_TIMEOUT;
             }
 
-            switch (neosd_acmd_commit(SD_ACMD41, acmd41_arg, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE, &status))
+            switch (neosd_acmd_commit(SD_ACMD41, acmd41_arg, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE, &status, 0, NEOSD_TIMEOUT))
             {
                 case NEOSD_CRC_ERR:
                     return NEOSD_CRC_ERR;
@@ -399,7 +401,7 @@ bool neosd_set_data_mode(bool d4mode)
     // ACMD6 SET_BUS_WIDTH 10=4 bit, 00=1 bit
     size_t arg = d4mode ? 0b10 : 0b00;
     sd_status_t status;
-    if (neosd_acmd_commit((SD_CMD_IDX)6, arg, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE, &status, 1) != NEOSD_OK)
+    if (neosd_acmd_commit((SD_CMD_IDX)6, arg, NEOSD_RMODE_SHORT, NEOSD_DMODE_NONE, &status, 1, NEOSD_TIMEOUT) != NEOSD_OK)
         return false;
 
     //NEOSD_DEBUG_MSG("NEOSD: Sent ACMD6\n");
