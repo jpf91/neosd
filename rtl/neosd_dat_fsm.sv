@@ -28,18 +28,9 @@ module neosd_dat_fsm (
     // If the clock actually is active and not stalled
     input sd_clk_en_i,
     // SD DAT wire
-    output sd_dat0_oe,
-    output sd_dat1_oe,
-    output sd_dat2_oe,
-    output sd_dat3_oe,
-    output sd_dat0_o,
-    output sd_dat1_o,
-    output sd_dat2_o,
-    output sd_dat3_o,
-    input sd_dat0_i,
-    input sd_dat1_i,
-    input sd_dat2_i,
-    input sd_dat3_i
+    output[3:0] sd_dat_o,
+    input[3:0] sd_dat_i,
+    output[3:0] sd_dat_oe
 );
 
     logic block_crc_nonzero, block_rstn_i, block_shift_s;
@@ -75,14 +66,8 @@ module neosd_dat_fsm (
         .ctrl_rstn_reg_i(block_ctrl_rstn_reg),
         .ctrl_rstn_rot_i(block_ctrl_rstn_rot),
 
-        .sd_dat0_i(sd_dat0_i),
-        .sd_dat1_i(sd_dat1_i),
-        .sd_dat2_i(sd_dat2_i),
-        .sd_dat3_i(sd_dat3_i),
-        .sd_dat0_o(sd_dat0_o),
-        .sd_dat1_o(sd_dat1_o),
-        .sd_dat2_o(sd_dat2_o),
-        .sd_dat3_o(sd_dat3_o),
+        .sd_dat_i(sd_dat_i),
+        .sd_dat_o(sd_dat_o),
 
         .shift_s_i(block_shift_s),
         .crc_nonzero_o(block_crc_nonzero),
@@ -124,10 +109,10 @@ module neosd_dat_fsm (
     assign sd_clk_req_o = dat_fsm_curr.clk_req;
     assign sd_clk_stall_o = dat_fsm_curr.clk_stall;
 
-    assign sd_dat0_oe = dat_fsm_curr.dat_oe;
-    assign sd_dat1_oe = dat_fsm_curr.dat_oe & ctrl_d4_i;
-    assign sd_dat2_oe = dat_fsm_curr.dat_oe & ctrl_d4_i;
-    assign sd_dat3_oe = dat_fsm_curr.dat_oe & ctrl_d4_i;
+    assign sd_dat_oe[0] = dat_fsm_curr.dat_oe;
+    assign sd_dat_oe[1] = dat_fsm_curr.dat_oe & ctrl_d4_i;
+    assign sd_dat_oe[2] = dat_fsm_curr.dat_oe & ctrl_d4_i;
+    assign sd_dat_oe[3] = dat_fsm_curr.dat_oe & ctrl_d4_i;
 
     assign status_crc_ok_o = dat_fsm_curr.crc_ok;
     assign status_block_done_o = dat_fsm_curr.block_done;
@@ -188,7 +173,7 @@ module neosd_dat_fsm (
                     end
                     STATE_WAIT_BLOCK: begin
                         // Wait for block begin marker 0
-                        if ((sd_clk_en_i == 1'b1) && (sd_dat0_i == 1'b0)) begin
+                        if ((sd_clk_en_i == 1'b1) && (sd_dat_i[0] == 1'b0)) begin
                             dat_fsm_next.state = STATE_READ_BLOCK;
                             dat_fsm_next.block_ctrl_rstn_crc = 1'b1;
                             dat_fsm_next.block_ctrl_rot_reg = 1'b1;
@@ -259,7 +244,7 @@ module neosd_dat_fsm (
                     end
                     STATE_WAIT_BUSY: begin
                         // Wait for line high
-                        if ((sd_clk_en_i == 1'b1) && (sd_dat0_i == 1'b1)) begin
+                        if ((sd_clk_en_i == 1'b1) && (sd_dat_i[0] == 1'b1)) begin
                             dat_fsm_next.state = STATE_TAIL;
                             dat_fsm_next.bit_counter = 0;
                         end
@@ -352,7 +337,7 @@ module neosd_dat_fsm (
                     end
                     STATE_WRITE_BUSY: begin
                         // Only continue, if not stalled
-                        if ((sd_clk_en_i == 1'b1) && (sd_dat0_i == 1'b1)) begin
+                        if ((sd_clk_en_i == 1'b1) && (sd_dat_i[0] == 1'b1)) begin
                             dat_fsm_next.block_done = 1'b1;
                             dat_fsm_next.state = STATE_WRITE_TAIL;
                         end

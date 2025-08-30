@@ -20,18 +20,9 @@ module neosd (
     output sd_cmd_o,
     input sd_cmd_i,
     output sd_cmd_oe,
-    output sd_dat0_o,
-    output sd_dat1_o,
-    output sd_dat2_o,
-    output sd_dat3_o,
-    input sd_dat0_i,
-    input sd_dat1_i,
-    input sd_dat2_i,
-    input sd_dat3_i,
-    output sd_dat0_oe,
-    output sd_dat1_oe,
-    output sd_dat2_oe,
-    output sd_dat3_oe
+    output[3:0] sd_dat_o,
+    input[3:0] sd_dat_i,
+    output[3:0] sd_dat_oe
 );
     localparam ADDR_INFO = 8'h00;
     localparam ADDR_CTRL = 8'h04;
@@ -280,18 +271,9 @@ module neosd (
         .sd_clk_req_o(sd_clk_req_dat),
         .sd_clk_stall_o(sd_clk_stall_dat),
         .sd_clk_en_i(sd_clk_en),
-        .sd_dat0_oe(sd_dat0_oe),
-        .sd_dat1_oe(sd_dat1_oe),
-        .sd_dat2_oe(sd_dat2_oe),
-        .sd_dat3_oe(sd_dat3_oe),
-        .sd_dat0_o(sd_dat0_o),
-        .sd_dat1_o(sd_dat1_o),
-        .sd_dat2_o(sd_dat2_o),
-        .sd_dat3_o(sd_dat3_o),
-        .sd_dat0_i(sd_dat0_i),
-        .sd_dat1_i(sd_dat1_i),
-        .sd_dat2_i(sd_dat2_i),
-        .sd_dat3_i(sd_dat3_i)
+        .sd_dat_oe(sd_dat_oe),
+        .sd_dat_o(sd_dat_o),
+        .sd_dat_i(sd_dat_i)
     );
 
     // Forward register accesses to neosd_dat_fsm

@@ -21,15 +21,8 @@ module neosd_dat_block (
     // 
     input ctrl_rstn_rot_i,
 
-    input sd_dat0_i,
-    input sd_dat1_i,
-    input sd_dat2_i,
-    input sd_dat3_i,
-
-    output sd_dat0_o,
-    output sd_dat1_o,
-    output sd_dat2_o,
-    output sd_dat3_o,
+    output[3:0] sd_dat_o,
+    input[3:0] sd_dat_i,
 
     // Enable the shift registers
     input shift_s_i,
@@ -43,17 +36,17 @@ module neosd_dat_block (
 
     // For read mode: The input, either 4 pin or 1 pin
     logic[3:0] reg_data_s_i;
-    assign reg_data_s_i[0] = sd_dat0_i;
-    assign reg_data_s_i[1] = ctrl_d4_i ? sd_dat1_i : sd_dat0_i;
-    assign reg_data_s_i[2] = ctrl_d4_i ? sd_dat2_i : sd_dat0_i;
-    assign reg_data_s_i[3] = ctrl_d4_i ? sd_dat3_i : sd_dat0_i;
+    assign reg_data_s_i[0] = sd_dat_i[0];
+    assign reg_data_s_i[1] = ctrl_d4_i ? sd_dat_i[1] : sd_dat_i[0];
+    assign reg_data_s_i[2] = ctrl_d4_i ? sd_dat_i[2] : sd_dat_i[0];
+    assign reg_data_s_i[3] = ctrl_d4_i ? sd_dat_i[3] : sd_dat_i[0];
 
     // CRC input muxes
     logic[3:0] crc_data_s_i;
-    assign crc_data_s_i[0] = ctrl_rnw_i ? reg_data_s_i[0] : sd_dat0_o;
-    assign crc_data_s_i[1] = ctrl_rnw_i ? reg_data_s_i[1] : sd_dat1_o;
-    assign crc_data_s_i[2] = ctrl_rnw_i ? reg_data_s_i[2] : sd_dat2_o;
-    assign crc_data_s_i[3] = ctrl_rnw_i ? reg_data_s_i[3] : sd_dat3_o;
+    assign crc_data_s_i[0] = ctrl_rnw_i ? reg_data_s_i[0] : sd_dat_o[0];
+    assign crc_data_s_i[1] = ctrl_rnw_i ? reg_data_s_i[1] : sd_dat_o[1];
+    assign crc_data_s_i[2] = ctrl_rnw_i ? reg_data_s_i[2] : sd_dat_o[2];
+    assign crc_data_s_i[3] = ctrl_rnw_i ? reg_data_s_i[3] : sd_dat_o[3];
 
     // In read mode: if 1 pin mode, reg should read only read every 4th element
     logic[1:0] reg_active_n;
@@ -122,9 +115,9 @@ module neosd_dat_block (
     endgenerate
 
     // Drive outputs from muxes. dat0 in D0 mode muxes from all regs, but CRC output is always 0
-    assign sd_dat0_o = mux_data_s_o[reg_active_n & {2{!ctrl_d4_i & (ctrl_omux_i != 2'b11)}}];
-    assign sd_dat1_o = mux_data_s_o[1];
-    assign sd_dat2_o = mux_data_s_o[2];
-    assign sd_dat3_o = mux_data_s_o[3];
+    assign sd_dat_o[0] = mux_data_s_o[reg_active_n & {2{!ctrl_d4_i & (ctrl_omux_i != 2'b11)}}];
+    assign sd_dat_o[1] = mux_data_s_o[1];
+    assign sd_dat_o[2] = mux_data_s_o[2];
+    assign sd_dat_o[3] = mux_data_s_o[3];
 
 endmodule
