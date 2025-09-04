@@ -52,6 +52,7 @@ module neosd_clk (
         if (rstn_i == 1'b0) begin
             sd_clk_o <= 1'b0;
             sd_clk_cont <= 1'b0;
+            clkstrb_o <= 1'b0;
         end else begin
             // Divided clock used to sample / output data signals
             clkstrb_o <= sd_clk_strb & sd_clk_cont;
